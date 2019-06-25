@@ -448,9 +448,6 @@ export default {
         this.errorMessage.push(ErrorMessage.MAX_FEE_ERROR);
         return false;
       }
-      if (this.mosaics.length === 0) {
-        this.mosaics.push(NetworkCurrencyMosaic.createRelative(0));
-      }
       return true;
     },
     checkForm() {
@@ -470,7 +467,7 @@ export default {
         UInt64.fromUint(this.txAmount),
       );
 
-      if (this.txAmount > 0) {
+      if (this.txAmount > 0 || this.mosaics.length === 0) {
         this.mosaics.unshift(nativeCurrency);
       }
 
