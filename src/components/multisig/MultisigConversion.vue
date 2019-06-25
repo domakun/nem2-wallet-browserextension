@@ -143,6 +143,7 @@
                 v-model="isDialogShow"
                 :aggregateTransaction="aggregateTransaction"
                 :generationHash="generationHash"
+                :transactionType = 'TransactionType.AGGREGATE_BONDED'
                 @sent="txSent"
                 @error="txError"
         >
@@ -225,6 +226,7 @@ import {
   NetworkType,
   Deadline,
   PublicAccount,
+  TransactionType,
   AggregateTransaction,
 } from 'nem2-sdk';
 import { mapState } from 'vuex';
@@ -240,6 +242,7 @@ export default {
   },
   data() {
     return {
+      TransactionType,
       currentPublicKey: '8286C52C585471A6BEAAFE07C68EA004CF2DF5EE171A88596B26054FEAF4C8BC',
       publicKeyList: [],
       isDialogShow: false,
@@ -283,7 +286,7 @@ export default {
     },
     checkForm() {
       const that = this;
-      this.errorMessage = []
+      this.errorMessage = [];
       if (this.minApprovalDelta < 0) {
         this.errorMessage.push(ErrorMessage.MIN_APPROVAL_ERROR);
         return false;
@@ -299,7 +302,7 @@ export default {
       if (!this.generationHash || this.generationHash.trim() === '') {
         this.errorMessage.push(ErrorMessage.GENERATION_HASH_NULL);
         return false;
-      } else if(this.generationHash.length !== 64) {
+      } else if (this.generationHash.length !== 64) {
         this.errorMessage.push(ErrorMessage.GENERATION_HASH_ERROR);
         return false;
       }

@@ -17,16 +17,49 @@
           />
         </v-flex>
       </v-layout>
-      <v-layout row>
+
+      <v-layout
+              row
+              wrap
+      >
         <v-flex xs12>
+          <v-radio-group
+                  v-model="cosignType"
+                  row
+          >
+            <template v-slot:label>
+              <div>get cosign transactions by : </div>
+            </template>
+            <v-radio
+                    v-for="l in cosignTypes"
+                    :key="l.type"
+                    :label="l.label"
+                    :value="l.type"
+            />
+          </v-radio-group>
+        </v-flex>
+      </v-layout>
+      <v-layout row>
+        <v-flex xs12 v-if="cosignType == CosignTypes.MULTISIG_ACCOUNT" >
           <v-select
             v-model="currentMultisigPublicKey"
-            label="Multisig Account Publickey"
-            :items="multisig.multisigInfo.multisigAccounts"
+            label="Multisig Account Public Key"
+            :items="multisig.multisigInfo[wallet.activeWallet.name].multisigAccounts"
             item-text="publicKey"
           />
         </v-flex>
+          <v-flex xs12 v-if="cosignType == CosignTypes.INPUT">
+            <v-text-field
+              v-model="currentInputPublicKey"
+              class="ma-0 pa-0"
+              label="Input Public Key"
+              required
+            />
+        </v-flex>
       </v-layout>
+      <div>
+        <v-btn color="primary" @click="getCosignTransactions">get tranctions</v-btn>
+      </div>
       <div v-if="aggregatedTx.length > 0">
         <v-flex xs12>
           <v-card>
@@ -68,9 +101,9 @@
       </div>
 
       <div v-else>
-        <v-card>
+        <v-card v-show="isShowResult">
           <v-card-title primary-title>
-            <div class="monospaced">
+            <div class="monospaced" >
               <div class="clearfix homeLine">
                 no transactions waiting to be cosigned
               </div>
@@ -92,13 +125,31 @@ import {
   TransactionHttp,
 } from 'nem2-sdk';
 
+const CosignTypes = {
+  MULTISIG_ACCOUNT: 0,
+  INPUT: 1,
+};
 export default {
   name: 'MultisigTransactions',
   data() {
     return {
+      isShowResult: false,
+      CosignTypes,
+      currentInputPublicKey: '9C08CF57D9988C4F22DCA406B9A5AE8F877313076BAC0994FD6595D03BC1A093',
       currentMultisigPublicKey: '',
       activeWallet: this.$store.getters['wallet/GET_ACTIVE_WALLET'],
       aggregatedTx: [],
+      publicKey: '',
+      cosignType: CosignTypes.MULTISIG_ACCOUNT,
+      cosignTypes: [
+        {
+          label: 'multisig accounts',
+          type: CosignTypes.MULTISIG_ACCOUNT,
+        }, {
+          label: 'public key',
+          type: CosignTypes.INPUT,
+        },
+      ],
     };
   },
   computed: {
@@ -116,20 +167,10 @@ export default {
       namespaces: state => state.namespaces,
     }),
   },
-  watch: {
-    async currentMultisigPublicKey() {
-      const accountHttp = new AccountHttp(this.application.activeNode);
-      const publicAccount = PublicAccount
-        .createFromPublicKey(this.currentMultisigPublicKey, NetworkType.MIJIN_TEST);
-      this.aggregatedTx = await accountHttp.aggregateBondedTransactions(publicAccount).toPromise();
-      // eslint-disable-next-line no-console
-      console.log(this.aggregatedTx);
-    },
-  },
   methods: {
     cosignTransaction(index) {
       // eslint-disable-next-line no-console
-      const { account } = activeWallet;
+      const { account } = this.activeWallet;
       const transactionHttp = new TransactionHttp(this.application.activeNode);
 
       const cosignAggregateBondedTransaction = (transaction) => {
@@ -140,6 +181,22 @@ export default {
         this.aggregatedTx[index],
       );
       transactionHttp.announceAggregateBondedCosignature(cosignatureSignedTransaction);
+      this.getCosignTransactions();
+    },
+    async getCosignTransactions() {
+      if (this.cosignType === CosignTypes.MULTISIG_ACCOUNT) {
+        this.publicKey = this.currentMultisigPublicKey;
+      } else {
+        this.publicKey = this.currentInputPublicKey;
+      }
+      const accountHttp = new AccountHttp(this.application.activeNode);
+      const publicAccount = PublicAccount.createFromPublicKey(
+        this.publicKey, NetworkType.MIJIN_TEST,
+      );
+      this.aggregatedTx = await accountHttp.aggregateBondedTransactions(publicAccount).toPromise();
+      // eslint-disable-next-line no-console
+      console.log(this.aggregatedTx);
+      this.isShowResult = true;
     },
   },
 };

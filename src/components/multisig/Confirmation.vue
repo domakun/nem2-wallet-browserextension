@@ -63,6 +63,7 @@ import {
   HashLockTransaction,
   NetworkCurrencyMosaic,
   UInt64,
+  TransactionType,
 } from 'nem2-sdk';
 
 export default {
@@ -84,6 +85,12 @@ export default {
       type: String,
       default() {
         return '';
+      },
+    },
+    transactionType: {
+      type: Number,
+      default() {
+        return TransactionType.AGGREGATE_COMPLETE;
       },
     },
     title: {
@@ -119,7 +126,21 @@ export default {
     toggleDialog() {
       this.$emit('input', !this.value);
     },
-    signAndAnnounce() {
+    announceCompleteTransaction() {
+      const { aggregateTransaction } = this;
+      const { account } = this.wallet.activeWallet;
+      const node = this.application.activeNode;
+      const transactionHttp = new TransactionHttp(this.application.activeNode);
+      const signedTransaction = account.sign(aggregateTransaction, this.generationHash);
+      this.$emit('sent', {
+        txHash: signedTransaction.hash,
+        nodeURL: node,
+      });
+      transactionHttp
+        .announce(signedTransaction)
+        .subscribe(x => console.log(x), err => console.error(err));
+    },
+    announceBondedTransaction() {
       const { aggregateTransaction } = this;
       const { account } = this.wallet.activeWallet;
       const node = this.application.activeNode;
@@ -149,13 +170,21 @@ export default {
         listener
           .confirmed(account.address)
           .pipe(
-            filter((transaction) => transaction.transactionInfo !== undefined
-                && transaction.transactionInfo.hash === hashLockTransactionSigned.hash),
+            filter(transaction => transaction.transactionInfo !== undefined
+                  && transaction.transactionInfo.hash === hashLockTransactionSigned.hash),
             mergeMap(ignored => transactionHttp.announceAggregateBonded(signedTransaction)),
           )
           .subscribe(announcedAggregateBonded => console.log(announcedAggregateBonded),
             err => console.error(err));
       });
+    },
+    signAndAnnounce() {
+      console.log(this.transactionType);
+      if (this.transactionType === TransactionType.AGGREGATE_BONDED) {
+        this.announceBondedTransaction();
+      } else {
+        this.announceCompleteTransaction();
+      }
     },
   },
 };

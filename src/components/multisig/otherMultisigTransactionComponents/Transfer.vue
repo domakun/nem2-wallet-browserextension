@@ -73,7 +73,7 @@
 
                   <v-text-field
                     v-model="txAmount"
-                    label="cat.currency amount"
+                    label="cat.currency amount(relative)"
                     placeholder="ex. 10"
                     type="number"
                   />
