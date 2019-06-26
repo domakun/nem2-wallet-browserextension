@@ -43,7 +43,7 @@
         </v-btn>
         <v-btn
           color="info"
-          @click="signAndAnnounce"
+          @click="getTransaction"
         >
           Yes, send it!
         </v-btn>
@@ -57,7 +57,7 @@ import request from 'request';
 import { mapState } from 'vuex';
 import { filter, timeout } from 'rxjs/operators';
 import {
-  TransactionHttp, Listener, TransactionType,
+  TransactionHttp, Listener, TransactionType, CosignatureTransaction,
 } from 'nem2-sdk';
 import store from '../../store/index';
 
@@ -91,7 +91,8 @@ function sendSequential(transactions, endpoint, address, emitter, webhook) {
       if (confirmedTxIndex === -1) return;
       if (transactions[confirmedTxIndex + 1] !== undefined) {
         const signedTx = transactions[confirmedTxIndex + 1];
-        txHttp.announce(signedTx).subscribe((x) => {
+        txHttp.announceAggregateBonded(signedTx).subscribe((x) => {
+        // txHttp.announce(signedTx).subscribe((x) => {
           emitter('sent', {
             message: x,
             txHash: signedTx.hash,
@@ -173,6 +174,12 @@ export default {
         return [];
       },
     },
+    isCosign: {
+      type: Boolean,
+      default() {
+        return false;
+      },
+    },
     generationHash: {
       type: String,
       default() {
@@ -209,6 +216,13 @@ export default {
     toggleDialog() {
       this.$emit('input', !this.value);
     },
+    getTransaction() {
+      if (this.isCosign) {
+        this.cosignAndAnnounce();
+      } else {
+        this.signAndAnnounce();
+      }
+    },
     signAndAnnounce() {
       if (!this.wallet.activeWallet) return;
       const endpoint = this.application.activeNode;
@@ -224,6 +238,30 @@ export default {
       };
       sendSequential(transactions, endpoint, address, emitter, this.webhook);
       this.toggleDialog();
+    },
+    cosignAndAnnounce() {
+      if (!this.wallet.activeWallet) return;
+      const endpoint = this.application.activeNode;
+      const { account } = this.wallet.activeWallet;
+      const transactionHttp = new TransactionHttp(endpoint);
+      const emitter = (type, value) => {
+        this.$emit(type, value);
+      };
+      const cosignatureTransaction = CosignatureTransaction.create(this.transactions[0]);
+      const cosignedTx = account.signCosignatureTransaction(cosignatureTransaction);
+      transactionHttp.announceAggregateBondedCosignature(cosignedTx).subscribe((x) => {
+        emitter('sent', {
+          message: x,
+          txHash: cosignedTx.hash,
+          nodeURL: endpoint,
+        }, (e) => {
+          emitter('error', {
+            message: e,
+            txHash: cosignedTx.hash,
+            nodeURL: endpoint,
+          });
+        });
+      });
     },
   },
 };
