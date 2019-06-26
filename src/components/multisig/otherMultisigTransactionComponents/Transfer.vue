@@ -297,7 +297,7 @@ import {
 } from 'nem2-sdk';
 import { mapState } from 'vuex';
 import store from '../../../store/index';
-import SendConfirmation from '../SendConfirmation.vue';
+import SendConfirmation from '../../signature/SendConfirmation.vue';
 
 export default {
   components: {

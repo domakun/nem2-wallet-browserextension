@@ -112,6 +112,19 @@
         </v-card>
       </div>
     </v-container>
+
+    <Confirmation
+            v-model="isDialogShow"
+            :transactions="transactions"
+            :isCosign = 'true'
+            :generationHash="generationHash"
+            @sent="txSent"
+            @error="txError"
+    >
+    </Confirmation>
+    <SendConfirmation
+            :tx-send-data="txSendResults"
+    />
   </v-layout>
 </template>
 
@@ -121,9 +134,9 @@ import {
   PublicAccount,
   AccountHttp,
   NetworkType,
-  CosignatureTransaction,
-  TransactionHttp,
 } from 'nem2-sdk';
+import Confirmation from '../signature/Confirmation.vue';
+import SendConfirmation from '../signature/SendConfirmation.vue';
 
 const CosignTypes = {
   MULTISIG_ACCOUNT: 0,
@@ -131,8 +144,34 @@ const CosignTypes = {
 };
 export default {
   name: 'MultisigTransactions',
+  components: {
+    SendConfirmation,
+    Confirmation,
+  },
+  computed: {
+    ...mapState([
+      'wallet',
+      'accountInfo',
+      'application',
+      'assets',
+      'namespaces',
+      'multisig',
+    ], {
+      wallet: state => state.wallet,
+      assets: state => state.assets,
+      namespaces: state => state.namespaces,
+    }),
+    generationHash: {
+      get() {
+        return this.application.generationHashes[this.application.activeNode];
+      },
+    },
+  },
   data() {
     return {
+      txSendResults: [],
+      transactions: [],
+      isDialogShow: false,
       isShowResult: false,
       CosignTypes,
       currentInputPublicKey: '9C08CF57D9988C4F22DCA406B9A5AE8F877313076BAC0994FD6595D03BC1A093',
@@ -152,35 +191,17 @@ export default {
       ],
     };
   },
-  computed: {
-    ...mapState([
-      'wallet',
-      'accountInfo',
-      'application',
-      'transactions',
-      'assets',
-      'namespaces',
-      'multisig',
-    ], {
-      wallet: state => state.wallet,
-      assets: state => state.assets,
-      namespaces: state => state.namespaces,
-    }),
-  },
   methods: {
     cosignTransaction(index) {
-      // eslint-disable-next-line no-console
-      const { account } = this.activeWallet;
-      const transactionHttp = new TransactionHttp(this.application.activeNode);
-
-      const cosignAggregateBondedTransaction = (transaction) => {
-        const cosignatureTransaction = CosignatureTransaction.create(transaction);
-        return account.signCosignatureTransaction(cosignatureTransaction);
-      };
-      const cosignatureSignedTransaction = cosignAggregateBondedTransaction(
-        this.aggregatedTx[index],
-      );
-      transactionHttp.announceAggregateBondedCosignature(cosignatureSignedTransaction);
+      this.isDialogShow = true;
+      this.dialogDetails = [
+        {
+          icon: 'add',
+          key: 'Generation Hash',
+          value: this.generationHash,
+        },
+      ];
+      this.transactions = [this.aggregatedTx[index]];
       this.getCosignTransactions();
     },
     async getCosignTransactions() {
@@ -197,6 +218,16 @@ export default {
       // eslint-disable-next-line no-console
       console.log(this.aggregatedTx);
       this.isShowResult = true;
+    },
+    txSent(result) {
+      this.txSendResults.push({
+        txHash: result.txHash,
+        nodeURL: result.nodeURL,
+      });
+    },
+    txError(error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
     },
   },
 };

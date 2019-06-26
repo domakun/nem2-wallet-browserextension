@@ -62,9 +62,6 @@
               <v-tab>
                 Cosign Multisig Transactions
               </v-tab>
-              <!-- <v-tab>
-                Send Multisig Transactions
-              </v-tab> -->
               <v-tab-item
                 v-if="!(wallet.wallets.length > 0
                   && wallet.activeWallet

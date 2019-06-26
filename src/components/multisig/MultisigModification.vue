@@ -223,7 +223,7 @@
 
         <Confirmation
                 v-model="isDialogShow"
-                :aggregateTransaction="aggregateTransaction"
+                :transactions="transactions"
                 :transactionType="transactionType"
                 :generationHash="generationHash"
                 @sent="txSent"
@@ -287,10 +287,12 @@ import {
   TransactionType,
   MultisigCosignatoryModification,
   AccountHttp,
-  Address,
+  Address, HashLockTransaction,
+  NetworkCurrencyMosaic,
+  UInt64,
 } from 'nem2-sdk';
-import Confirmation from './Confirmation.vue';
-import SendConfirmation from './SendConfirmation.vue';
+import Confirmation from '../signature/Confirmation.vue';
+import SendConfirmation from '../signature/SendConfirmation.vue';
 
 export default {
   name: 'ModifyMultisig',
@@ -315,7 +317,7 @@ export default {
       lockFundsDuration: 480,
       lockFundsMaxFee: 0,
       isDialogShow: false,
-      aggregateTransaction: {},
+      transactions: [],
       dialogDetails: [],
       disabledSendLockFundsTransaction: false,
       disabledSendAggregateTransaction: true,
@@ -404,7 +406,6 @@ export default {
       }
     },
     createComplete() {
-      const { account } = this.wallet.activeWallet;
       const network = NetworkType.MIJIN_TEST;
       const minApprovalDelta = this.approvalDelta;
       const minRemovalDelta = this.removalDelta;
@@ -418,18 +419,16 @@ export default {
         [],
         network,
       );
-      console.log('modifyMultisigAccountTx',modifyMultisigAccountTx)
       const aggregateTransaction = AggregateTransaction.createComplete(
         Deadline.create(),
         [modifyMultisigAccountTx.toAggregate(multisigPublicAccount)],
         network,
         [],
       );
-      console.log('aggregateTransaction', aggregateTransaction)
-
-      this.aggregateTransaction = account.sign(aggregateTransaction, this.generationHash);
+      this.transactions = [aggregateTransaction];
     },
     async createBondedModifyTransaction() {
+      const { account } = this.wallet.activeWallet;
       const multisigPublicAccount = PublicAccount
         .createFromPublicKey(this.currentMultisigPublicKey, NetworkType.MIJIN_TEST);
       const network = NetworkType.MIJIN_TEST;
@@ -456,7 +455,15 @@ export default {
         ],
         network,
       );
-      this.aggregateTransaction = aggregateTransaction;
+      const signedTransaction = account.sign(aggregateTransaction, this.generationHash);
+      const hashLockTransaction = HashLockTransaction.create(
+        Deadline.create(),
+        NetworkCurrencyMosaic.createRelative(10),
+        UInt64.fromUint(480),
+        signedTransaction,
+        NetworkType.MIJIN_TEST,
+      );
+      this.transactions = [hashLockTransaction, aggregateTransaction];
     },
     txSent(result) {
       this.txSendResults.push({

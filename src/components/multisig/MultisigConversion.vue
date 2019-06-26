@@ -141,7 +141,7 @@
 
         <Confirmation
                 v-model="isDialogShow"
-                :aggregateTransaction="aggregateTransaction"
+                :transactions="transactions"
                 :generationHash="generationHash"
                 :transactionType = 'TransactionType.AGGREGATE_BONDED'
                 @sent="txSent"
@@ -228,11 +228,14 @@ import {
   PublicAccount,
   TransactionType,
   AggregateTransaction,
+  HashLockTransaction,
+  NetworkCurrencyMosaic,
+  UInt64,
 } from 'nem2-sdk';
 import { mapState } from 'vuex';
 import ErrorMessage from '../../infrastructure/transactions/errorMessage';
-import Confirmation from './Confirmation.vue';
-import SendConfirmation from './SendConfirmation.vue';
+import Confirmation from '../signature/Confirmation.vue';
+import SendConfirmation from '../signature/SendConfirmation.vue';
 
 export default {
   name: 'AssetCreation',
@@ -248,7 +251,7 @@ export default {
       isDialogShow: false,
       txSendResults: [],
       dialogDetails: [],
-      aggregateTransaction: {},
+      transactions: [],
       minApprovalDelta: 1,
       minRemovalDelta: 1,
       maxFee: 0,
@@ -281,7 +284,6 @@ export default {
       } else {
         // eslint-disable-next-line no-console
         this.errorMessage.push(ErrorMessage.TOO_MUCH_COSIGNER);
-        console.log(ErrorMessage.TOO_MUCH_COSIGNER);
       }
     },
     checkForm() {
@@ -341,7 +343,16 @@ export default {
         [modifyMultisigAccountTransaction.toAggregate(account.publicAccount)],
         NetworkType.MIJIN_TEST,
       );
-      this.aggregateTransaction = aggregateTransaction;
+
+      const signedTransaction = account.sign(aggregateTransaction, this.generationHash);
+      const hashLockTransaction = HashLockTransaction.create(
+        Deadline.create(),
+        NetworkCurrencyMosaic.createRelative(10),
+        UInt64.fromUint(480),
+        signedTransaction,
+        NetworkType.MIJIN_TEST,
+      );
+      this.transactions = [hashLockTransaction, aggregateTransaction];
       this.dialogDetails = [
         {
           icon: 'add',
