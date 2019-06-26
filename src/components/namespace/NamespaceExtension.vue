@@ -24,12 +24,12 @@
       <v-toolbar card>
         <v-card-title primary-title>
           <h3 class="headline mb-3">
-            Create a new namespace
+            Extend namespace {{ namespaceName }}
           </h3>
         </v-card-title>
         <v-spacer />
         <v-btn
-          href="https://nemtech.github.io/concepts/namespace.html"
+          href="https://nemtech.github.io/guides/namespace/extending-a-namespace-registration-period.html"
           target="_new"
           icon
         >
@@ -38,50 +38,16 @@
       </v-toolbar>
 
       <v-card-text>
-        <v-radio-group v-model="namespaceType">
-          <template v-slot:label>
-            <div>Namespace Type</div>
-          </template>
-          <v-radio
-            v-for="t in namespaceTypes"
-            :key="t.type"
-            :label="t.label"
-            :value="t.type"
-          />
-        </v-radio-group>
-
+        <h3 class="headline mb-5">
+          {{ expiration(application.blockNumber, endHeight) }}
+        </h3>
         <v-text-field
-          v-model="namespaceName"
+          v-model="duration"
           class="my-2 pa-0"
-          label="Namespace name"
-          :hint="namespaceNameHints(namespaceType)"
+          label="Duration increase, in blocks"
           required
+          number
         />
-
-        <v-layout
-          v-if="isSubNamespace"
-          row
-        >
-          <v-text-field
-            v-model="parentNamespaceName"
-            class="my-2 pa-0"
-            label="Parent Namespace name"
-            :hint="namespaceNameHints(namespaceType)"
-            required
-          />
-        </v-layout>
-        <v-layout
-          v-if="!isSubNamespace"
-          row
-        >
-          <v-text-field
-            v-model="duration"
-            class="my-2 pa-0"
-            label="Duration"
-            required
-            number
-          />
-        </v-layout>
         <v-layout column>
           <SendConfirmation
             :tx-send-data="txSendResults"
@@ -97,7 +63,7 @@
           Close
         </v-btn>
         <v-btn
-          :disabled="disabledSendTransaction"
+          :disabled="!(duration > 0)"
           color="primary mx-0"
           @click="showDialog"
         >
@@ -133,9 +99,9 @@
 <script>
 import { mapState } from 'vuex';
 import {
-  NetworkType, RegisterNamespaceTransaction, NamespaceType, Deadline, UInt64,
+  NetworkType, RegisterNamespaceTransaction, Deadline, UInt64,
 } from 'nem2-sdk';
-import { validateNamespaceName } from '../../infrastructure/namespaces/helpers';
+
 import Confirmation from '../signature/Confirmation.vue';
 import SendConfirmation from '../signature/SendConfirmation.vue';
 
@@ -146,16 +112,17 @@ export default {
   },
   props: {
     visible: Boolean,
+    namespaceName: {
+      type: String,
+      required: true,
+    },
+    endHeight: {
+      type: Number,
+      required: true,
+    },
   },
   data() {
     return {
-      namespaceType: NamespaceType.RootNamespace,
-      namespaceTypes: [
-        { type: NamespaceType.RootNamespace, label: 'RootNamespace' },
-        { type: NamespaceType.SubNamespace, label: 'SubNamespace' },
-      ],
-      namespaceName: '',
-      parentNamespaceName: '',
       duration: 0,
       transactions: [],
       isDialogShow: false,
@@ -164,18 +131,10 @@ export default {
     };
   },
   computed: {
-    ...mapState(['application']),
-    isSubNamespace() {
-      return this.namespaceType === NamespaceType.SubNamespace;
-    },
-    disabledSendTransaction() {
-      if (this.namespaceType === NamespaceType.RootNamespace) {
-        return !validateNamespaceName(this.namespaceName, this.namespaceType)
-          || this.duration === 0;
-      }
-      return !validateNamespaceName(this.namespaceName, this.namespaceType)
-        || this.parentNamespaceName === '';
-    },
+    ...mapState([
+      'application',
+      'wallet',
+    ]),
     show: {
       get() {
         return this.visible;
@@ -189,44 +148,19 @@ export default {
   },
   methods: {
     showDialog() {
-      const { duration } = this;
-      const { namespaceName, parentNamespaceName } = this;
-      let registerNamespaceTransaction;
-      switch (this.namespaceType) {
-      case NamespaceType.RootNamespace:
-        registerNamespaceTransaction = RegisterNamespaceTransaction.createRootNamespace(
-          Deadline.create(),
-          namespaceName,
-          UInt64.fromUint(duration),
-          NetworkType.MIJIN_TEST,
-        );
-        break;
-      case NamespaceType.SubNamespace:
-        registerNamespaceTransaction = RegisterNamespaceTransaction.createSubNamespace(
-          Deadline.create(),
-          namespaceName,
-          parentNamespaceName,
-          NetworkType.MIJIN_TEST,
-        );
-        break;
-      default:
-        return;
-      }
+      const { duration, namespaceName } = this;
+      const registerNamespaceTransaction = RegisterNamespaceTransaction.createRootNamespace(
+        Deadline.create(),
+        namespaceName,
+        UInt64.fromUint(duration),
+        NetworkType.MIJIN_TEST,
+      );
+
       this.transactions = [registerNamespaceTransaction];
       this.dialogDetails = [
         {
           icon: 'add',
-          key: 'NamespaceType',
-          value: this.namespaceType === 0 ? 'RootNamespace' : 'SubNamespace',
-        },
-        {
-          icon: 'add',
-          key: 'Namespace name',
-          value: this.namespaceType === 0 ? this.namespaceName : (`${this.parentNamespaceName}.${this.namespaceName}`),
-        },
-        {
-          icon: 'add',
-          key: 'Duration',
+          key: 'Additional duration',
           value: this.duration,
         },
       ];
@@ -242,12 +176,12 @@ export default {
       // eslint-disable-next-line no-console
       console.error(error);
     },
-    namespaceNameHints(namespaceType) {
-      if (namespaceType === NamespaceType.RootNamespace) return 'Allowed characters are a, b, c, …, z, 0, 1, 2, …, 9, ‘, _ , -';
-      return 'Allowed characters are a, b, c, …, z, 0, 1, 2, …, 9, ‘, _ , - , . ';
+    expiration(blockNumber, endHeight) {
+      if (!(blockNumber > 0)) return `This namespace expires at height ${endHeight.toLocaleString()}`;
+      const expiresIn = endHeight - blockNumber;
+      if (expiresIn > 0) return `This namespace expires in ${expiresIn.toLocaleString()} blocks.`;
+      return `This namespace has been expired for ${expiresIn.toLocaleString() * -1} blocks.`;
     },
   },
 };
 </script>
-<style scoped>
-</style>

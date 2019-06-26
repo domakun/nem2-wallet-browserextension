@@ -45,6 +45,15 @@
                 <v-list-tile-sub-title>
                   <div class="monospaced">
                     {{ ns.expire }}
+                    <a
+                      v-if="wallet.activeWallet.walletType !== walletTypes.WATCH_ONLY_WALLET
+                        && ns.namespaceType === NamespaceType.RootNamespace"
+                      @click.stop="wallet.activeWallet.isWatchOnly
+                        ? showPasswordInput = true
+                        : spawnExtendNamespace(ns.name, ns.endHeight)"
+                    >
+                      extend
+                    </a>
                   </div>
                 </v-list-tile-sub-title>
                 <v-list-tile-sub-title>
@@ -80,19 +89,57 @@
         </template>
       </v-slide-y-transition>
     </v-list>
+    <PasswordInput
+      :visible="showPasswordInput"
+      :wallet-name="wallet.activeWallet.name"
+      :wallet-type="wallet.activeWallet.walletType"
+      @close="showPasswordInput = false"
+    />
+    <NamespaceExtension
+      :visible="extendNamespace"
+      :namespace-name="currentNamespaceName"
+      :end-height="currentNamespaceEndHeight"
+      @close="extendNamespace = false"
+    />
   </v-layout>
 </template>
 <script>
 import { mapState } from 'vuex';
+import { NamespaceType } from 'nem2-sdk';
+import { walletTypes } from '../../infrastructure/wallet/wallet-types';
+
 import AliasTransaction from './AliasTransaction.vue';
+import PasswordInput from '../wallet/PasswordInput.vue';
+import NamespaceExtension from './NamespaceExtension.vue';
 
 export default {
   name: 'NamespaceList',
-  components: { AliasTransaction },
+  components: {
+    AliasTransaction,
+    PasswordInput,
+    NamespaceExtension,
+  },
+  data() {
+    return {
+      extendNamespace: false,
+      showPasswordInput: false,
+      NamespaceType,
+      currentNamespaceName: '',
+      currentNamespaceEndHeight: 0,
+      walletTypes,
+    };
+  },
   computed: mapState([
     'namespaces',
     'wallet',
   ]),
+  methods: {
+    spawnExtendNamespace(name, endHeight) {
+      this.currentNamespaceName = name;
+      this.currentNamespaceEndHeight = endHeight;
+      this.extendNamespace = true;
+    },
+  },
 };
 
 </script>

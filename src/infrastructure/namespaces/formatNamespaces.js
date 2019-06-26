@@ -39,7 +39,9 @@ export const formatNamespaces = (namespacesInfo, blockHeight) => namespacesInfo.
   }
   return 0;
 }).map((ns, index, original) => {
-  const name = ns.namespaceInfo.levels.map(level => original.find(n => n.namespaceInfo.id.equals(level))).map(n => n.namespaceName.name).join('.');
+  const name = ns.namespaceInfo.levels.map(level => original
+    .find(n => n.namespaceInfo.id.equals(level))).map(n => n.namespaceName.name).join('.');
+  const namespaceType = ns.namespaceInfo.type;
   let aliasText;
   let aliasType;
   switch (ns.namespaceInfo.alias.type) {
@@ -56,10 +58,15 @@ export const formatNamespaces = (namespacesInfo, blockHeight) => namespacesInfo.
     aliasType = 'no alias';
     break;
   }
+  const endHeight = ns.namespaceInfo.endHeight.compact();
   const expireWithin = ns.namespaceInfo.endHeight.compact() - blockHeight;
-  const expireText = expireWithin > 0 ? `expire within ${expireWithin.toLocaleString()} blocks` : `expired ${(-expireWithin).toLocaleString()} blocks ago`;
+  const expireText = expireWithin > 0
+    ? `expires within ${expireWithin.toLocaleString()} blocks`
+    : `expired ${(-expireWithin).toLocaleString()} blocks ago`;
   return {
     name,
+    namespaceType,
+    endHeight,
     hexId: ns.namespaceInfo.id.toHex().toUpperCase(),
     type: aliasType,
     alias: aliasText,

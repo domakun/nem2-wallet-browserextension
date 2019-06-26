@@ -59,7 +59,7 @@ import { filter, timeout } from 'rxjs/operators';
 import {
   TransactionHttp, Listener, TransactionType,
 } from 'nem2-sdk';
-import store from '../store/index';
+import store from '../../store/index';
 
 function signTransactions(transactions, account, generationHash) {
   return transactions.map((tx) => {
@@ -205,8 +205,6 @@ export default {
   computed: mapState(
     ['wallet', 'application'],
   ),
-  watch: {
-  },
   methods: {
     toggleDialog() {
       this.$emit('input', !this.value);
@@ -230,7 +228,3 @@ export default {
   },
 };
 </script>
-
-<style scoped>
-
-</style>

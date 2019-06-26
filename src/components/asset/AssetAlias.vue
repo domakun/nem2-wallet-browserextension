@@ -133,8 +133,8 @@ import {
   NamespaceId,
 } from 'nem2-sdk';
 
-import Confirmation from '../Confirmation.vue';
-import SendConfirmation from '../SendConfirmation.vue';
+import Confirmation from '../signature/Confirmation.vue';
+import SendConfirmation from '../signature/SendConfirmation.vue';
 
 export default {
   name: 'AssetAlias',
