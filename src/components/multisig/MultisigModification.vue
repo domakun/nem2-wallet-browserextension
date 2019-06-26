@@ -351,10 +351,8 @@ export default {
         )).toPromise();
       if (this.currentMultisigAccount.minApproval > 1) {
         this.showLockFunds = true;
-        this.transactionType = TransactionType.AGGREGATE_BONDED;
       } else {
         this.showLockFunds = false;
-        this.transactionType = TransactionType.AGGREGATE_COMPLETE;
       }
     },
   },
@@ -395,35 +393,41 @@ export default {
         },
       ];
       if (this.currentMultisigAccount.minApproval > 1) {
+        this.transactionType = TransactionType.AGGREGATE_BONDED;
         this.createBondedModifyTransaction();
       } else if (this.cosignatoryList.length > 0) {
         this.transactionType = TransactionType.AGGREGATE_BONDED;
         this.createBondedModifyTransaction();
       } else {
+        this.transactionType = TransactionType.AGGREGATE_COMPLETE;
         this.createComplete();
       }
     },
     createComplete() {
+      const { account } = this.wallet.activeWallet;
       const network = NetworkType.MIJIN_TEST;
       const minApprovalDelta = this.approvalDelta;
       const minRemovalDelta = this.removalDelta;
       const multisigPublicAccount = PublicAccount.createFromPublicKey(
-        this.currentMultisigPublicKey, NetworkType.MIJIN_TEST,
+        this.currentMultisigPublicKey, network,
       );
       const modifyMultisigAccountTx = ModifyMultisigAccountTransaction.create(
         Deadline.create(),
-        minApprovalDelta,
-        minRemovalDelta,
+        Number(minApprovalDelta),
+        Number(minRemovalDelta),
         [],
         network,
       );
+      console.log('modifyMultisigAccountTx',modifyMultisigAccountTx)
       const aggregateTransaction = AggregateTransaction.createComplete(
         Deadline.create(),
         [modifyMultisigAccountTx.toAggregate(multisigPublicAccount)],
-        NetworkType.MIJIN_TEST,
+        network,
         [],
       );
-      this.aggregateTransaction = aggregateTransaction;
+      console.log('aggregateTransaction', aggregateTransaction)
+
+      this.aggregateTransaction = account.sign(aggregateTransaction, this.generationHash);
     },
     async createBondedModifyTransaction() {
       const multisigPublicAccount = PublicAccount
@@ -435,8 +439,8 @@ export default {
 
       const modifyMultisigAccountTx = ModifyMultisigAccountTransaction.create(
         Deadline.create(),
-        minApprovalDelta,
-        minRemovalDelta,
+        Number(minApprovalDelta),
+        Number(minRemovalDelta),
         cosignatories.map(co => new MultisigCosignatoryModification(
           co.modificationType
             ? MultisigCosignatoryModificationType.Remove : MultisigCosignatoryModificationType.Add,
