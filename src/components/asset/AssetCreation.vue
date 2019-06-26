@@ -87,8 +87,9 @@
         </v-btn>
       </v-card-actions>
     </v-card>
-    <Dialog
+    <Confirmation
       :is-show="isDialogShow"
+      :transactions="transactions"
       @transmitTransaction="createAsset"
       @close="dialogClosed"
     >
@@ -107,7 +108,7 @@
           </v-list-tile-content>
         </v-list-tile>
       </v-list>
-    </Dialog>
+    </Confirmation>
   </v-dialog>
 </template>
 
@@ -126,13 +127,13 @@ import {
   TransactionHttp,
   UInt64,
 } from 'nem2-sdk';
-import Dialog from './Dialog.vue';
-import SendConfirmation from './SendConfirmation.vue';
+import Confirmation from '../signature/Confirmation.vue';
+import SendConfirmation from '../signature/SendConfirmation.vue';
 
 export default {
   name: 'AssetCreation',
   components: {
-    Dialog,
+    Confirmation,
     SendConfirmation,
   },
   props: {
@@ -151,6 +152,7 @@ export default {
       txSendResults: [],
       disabledSendTransaction: false,
       currentGenerationHash: '',
+      transactions: [],
     };
   },
   computed: {
@@ -287,19 +289,7 @@ export default {
         NetworkType.MIJIN_TEST,
         [],
       );
-
-      const signedTx = account
-        .sign(aggregateTransaction, this.generationHash);
-
-      transactionHttp
-        .announce(signedTx)
-        // eslint-disable-next-line no-console
-        .subscribe(x => console.log(x), err => console.error(err));
-
-      this.txSendResults = [{
-        txHash: signedTx.hash,
-        nodeURL: endpoint,
-      }];
+      this.transactions = [aggregateTransaction];
     },
     dialogClosed() {
       this.isDialogShow = false;

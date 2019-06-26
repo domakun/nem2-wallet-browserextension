@@ -83,65 +83,61 @@
         </v-flex>
       </v-layout>
 
-      <v-layout
-              v-if="showLockFunds"
-              row
-      >
-        <v-flex xs12>
-          <v-subheader>Lock Funds Transacion</v-subheader>
-        </v-flex>
-      </v-layout>
-      <v-layout
-              v-if="showLockFunds"
-              row
-      >
-        <v-flex xs6>
-          <v-text-field
-                  v-model="lockFundsMosaicType"
-                  class="ma-0 pa-0"
-                  required
-                  disabled
-          />
-        </v-flex>
-        <v-flex xs6>
-          <v-text-field
-                  v-model="lockFundsMosaicAmount"
-                  class="ma-0 pa-0"
-                  type="number"
-                  required
-                  disabled
-                  number
-          />
-        </v-flex>
-      </v-layout>
-
-
-      <v-layout v-if="showLockFunds">
-        <v-flex xs12>
-          <v-text-field
-                  v-model="lockFundsDuration"
-                  label="Lock Funds Duration In Blocks"
-                  class="ma-0 pa-0"
-                  type="number"
-                  required
-                  number
-          />
-        </v-flex>
-      </v-layout>
-
-      <v-layout v-if="showLockFunds">
-        <v-flex xs12>
-          <v-text-field
-                  v-model="lockFundsMaxFee"
-                  label="Lock Funds Max Fee"
-                  class="ma-0 pa-0"
-                  type="number"
-                  required
-                  number
-          />
-        </v-flex>
-      </v-layout>
-
+<!--      <v-layout-->
+<!--              v-if="showLockFunds"-->
+<!--              row-->
+<!--      >-->
+<!--        <v-flex xs12>-->
+<!--          <v-subheader>Lock Funds Transacion</v-subheader>-->
+<!--        </v-flex>-->
+<!--      </v-layout>-->
+<!--      <v-layout-->
+<!--              v-if="showLockFunds"-->
+<!--              row-->
+<!--      >-->
+<!--        <v-flex xs6>-->
+<!--          <v-text-field-->
+<!--                  v-model="lockFundsMosaicType"-->
+<!--                  class="ma-0 pa-0"-->
+<!--                  required-->
+<!--                  disabled-->
+<!--          />-->
+<!--        </v-flex>-->
+<!--        <v-flex xs6>-->
+<!--          <v-text-field-->
+<!--                  v-model="lockFundsMosaicAmount"-->
+<!--                  class="ma-0 pa-0"-->
+<!--                  type="number"-->
+<!--                  required-->
+<!--                  disabled-->
+<!--                  number-->
+<!--          />-->
+<!--        </v-flex>-->
+<!--      </v-layout>-->
+<!--      <v-layout v-if="showLockFunds">-->
+<!--        <v-flex xs12>-->
+<!--          <v-text-field-->
+<!--                  v-model="lockFundsDuration"-->
+<!--                  label="Lock Funds Duration In Blocks"-->
+<!--                  class="ma-0 pa-0"-->
+<!--                  type="number"-->
+<!--                  required-->
+<!--                  number-->
+<!--          />-->
+<!--        </v-flex>-->
+<!--      </v-layout>-->
+<!--      <v-layout v-if="showLockFunds">-->
+<!--        <v-flex xs12>-->
+<!--          <v-text-field-->
+<!--                  v-model="lockFundsMaxFee"-->
+<!--                  label="Lock Funds Max Fee"-->
+<!--                  class="ma-0 pa-0"-->
+<!--                  type="number"-->
+<!--                  required-->
+<!--                  number-->
+<!--          />-->
+<!--        </v-flex>-->
+<!--      </v-layout>-->
 
       <v-layout>
         <v-flex sm>

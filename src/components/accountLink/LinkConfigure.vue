@@ -79,9 +79,9 @@
         />
       </v-layout>
 
-      <Dialog
+      <Confirmation
         v-model="isDialogShow"
-        :transaction="transaction"
+        :transactions="transactions"
         :generation-hash="generationHash"
         @sent="txSent"
       >
@@ -100,7 +100,7 @@
             </v-list-tile-content>
           </v-list-tile>
         </v-list>
-      </Dialog>
+      </Confirmation>
     </v-container>
   </v-layout>
 </template>
@@ -113,12 +113,12 @@ import {
   UInt64,
 } from 'nem2-sdk';
 import { mapState } from 'vuex';
-import SendConfirmation from './SendConfirmation.vue';
-import Dialog from './Dialog.vue';
+import SendConfirmation from '../signature/SendConfirmation.vue';
+import Confirmation from '../signature/Confirmation.vue';
 
 export default {
   components: {
-    Dialog,
+    Confirmation,
     SendConfirmation,
   },
   data() {
@@ -137,7 +137,7 @@ export default {
       ],
       isDialogShow: false,
       dialogDetails: [],
-      transaction: {},
+      transactions: [],
       txSendResults: [],
       currentGenerationHash: '',
     };
@@ -161,14 +161,14 @@ export default {
   methods: {
     showDialog() {
       const { linkAction, remoteAccountKey } = this;
-      this.transaction = new AccountLinkTransaction(
+      this.transactions = [new AccountLinkTransaction(
         NetworkType.MIJIN_TEST,
         2,
         Deadline.create(),
         UInt64.fromUint(this.maxFee),
         remoteAccountKey,
         linkAction,
-      );
+      )];
       this.dialogDetails = [
         {
           icon: 'add',

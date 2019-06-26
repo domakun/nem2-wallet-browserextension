@@ -73,8 +73,9 @@
           </v-btn>
         </v-card-actions>
       </v-card-text>
-      <Dialog
+      <Confirmation
         :is-show="isDialogShow"
+        :transactions="transactions"
         @transmitTransaction="modifyAsset"
         @close="dialogClosed"
       >
@@ -93,7 +94,7 @@
             </v-list-tile-content>
           </v-list-tile>
         </v-list>
-      </Dialog>
+      </Confirmation>
     </v-card>
   </v-dialog>
 </template>
@@ -109,14 +110,13 @@ import {
   TransactionHttp,
   UInt64,
 } from 'nem2-sdk';
-
-import Dialog from './Dialog.vue';
-import SendConfirmation from './SendConfirmation.vue';
+import Confirmation from '../signature/Confirmation.vue';
+import SendConfirmation from '../signature/SendConfirmation.vue';
 
 export default {
   name: 'AssetModification',
   components: {
-    Dialog,
+    Confirmation,
     SendConfirmation,
   },
   props: {
@@ -138,6 +138,7 @@ export default {
       direction: 'Increase',
       directions: ['Increase', 'Decrease'],
       currentGenerationHash: '',
+      transactions: [],
     };
   },
   computed: {
@@ -190,12 +191,6 @@ export default {
     modifyAsset() {
       if (!this.wallet.activeWallet) return;
       if (this.directions.indexOf(this.direction) === -1) return;
-
-      const endpoint = this.application.activeNode;
-      const transactionHttp = new TransactionHttp(endpoint);
-      // eslint-disable-next-line prefer-destructuring;
-      const { account } = this.wallet.activeWallet;
-
       const mosaicSupplyChangeTransaction = MosaicSupplyChangeTransaction.create(
         Deadline.create(),
         new MosaicId(this.activeAsset.id),
@@ -203,19 +198,7 @@ export default {
         UInt64.fromUint(parseInt(this.supply, 10)),
         NetworkType.MIJIN_TEST,
       );
-
-      const signedTx = account
-        .sign(mosaicSupplyChangeTransaction, this.generationHash);
-
-      transactionHttp
-        .announce(signedTx)
-        // eslint-disable-next-line no-console
-        .subscribe(x => console.log(x), err => console.error(err));
-
-      this.txSendResults = [{
-        txHash: signedTx.hash,
-        nodeURL: endpoint,
-      }];
+      this.transactions = [mosaicSupplyChangeTransaction];
     },
     dialogClosed() {
       this.isDialogShow = false;
