@@ -395,85 +395,13 @@ export default {
         },
       ];
       if (this.currentMultisigAccount.minApproval > 1) {
-        this.createBonded();
+        this.createBondedModifyTransaction();
       } else if (this.cosignatoryList.length > 0) {
         this.transactionType = TransactionType.AGGREGATE_BONDED;
         this.createBondedModifyTransaction();
       } else {
         this.createComplete();
       }
-    },
-    async createBonded() {
-    //   const multisigPublicAccount = PublicAccount
-    //     .createFromPublicKey(this.currentMultisigPublicKey, NetworkType.MIJIN_TEST);
-    //   const { activeWallet } = this.wallet;
-    //   const { account } = activeWallet;
-    //   const network = NetworkType.MIJIN_TEST;
-    //   const endpoint = this.application.activeNode;
-    //   const transactionHttp = new TransactionHttp(endpoint);
-    //   const minApprovalDelta = this.approvalDelta;
-    //   const minRemovalDelta = this.removalDelta;
-    //   const cosignatories = this.cosignatoryList;
-    //   const namespaceHttp = new NamespaceHttp(endpoint);
-    //   const namespaceId = NetworkCurrencyMosaic.NAMESPACE_ID;
-    //   const mosaicId = await namespaceHttp.getLinkedMosaicId(namespaceId).toPromise();
-    //
-    //   const modifyMultisigAccountTx = ModifyMultisigAccountTransaction.create(
-    //     Deadline.create(),
-    //     minApprovalDelta,
-    //     minRemovalDelta,
-    //     cosignatories.map(co => new MultisigCosignatoryModification(
-    //       co.modificationType
-    //         ? MultisigCosignatoryModificationType.Remove : MultisigCosignatoryModificationType.Add,
-    //       PublicAccount.createFromPublicKey(co.cosignatoryPublicKey, network),
-    //     )),
-    //     network,
-    //   );
-    //
-    //   const aggregateTx = new AggregateTransaction(
-    //     network,
-    //     TransactionType.AGGREGATE_BONDED,
-    //     2,
-    //     Deadline.create(23),
-    //     UInt64.fromUint(this.maxFee),
-    //     [
-    //       modifyMultisigAccountTx.toAggregate(multisigPublicAccount),
-    //     ],
-    //   );
-    //
-    //   const signedAggregateTx = account
-    //     .sign(aggregateTx, this.generationHash);
-    //   this.aggregateTx = signedAggregateTx;
-    //
-    //   const { lockFundsMosaicAmount } = this;
-    //   const lockMosaic = new Mosaic(
-    //     mosaicId,
-    //     UInt64.fromUint(lockFundsMosaicAmount >= 10000000 ? lockFundsMosaicAmount : 10000000),
-    //   );
-    //
-    //   const lockFundsTx = new LockFundsTransaction(
-    //     network,
-    //     1,
-    //     Deadline.create(23),
-    //     UInt64.fromUint(this.lockFundsMaxFee),
-    //     lockMosaic,
-    //     UInt64.fromUint(this.lockFundsDuration),
-    //     signedAggregateTx,
-    //   );
-    //   const signedLockFundsTx = activeWallet.account
-    //     .sign(lockFundsTx, this.generationHash);
-    //
-    //   transactionHttp.announce(signedLockFundsTx);
-    //
-    //   const listener = new Listener(this.application.activeNode.replace('http', 'ws'), WebSocket);
-    //
-    //   const that = this;
-    //   listener.open().then(() => {
-    //     listener.confirmed(activeWallet.account.address).subscribe(() => {
-    //       that.disabledSendAggregateTransaction = false;
-    //       listener.close();
-    //     });
-    //   });
     },
     createComplete() {
       const network = NetworkType.MIJIN_TEST;
