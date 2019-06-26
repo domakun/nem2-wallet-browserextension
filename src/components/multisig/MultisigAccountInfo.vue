@@ -103,9 +103,12 @@
                 && multisig.multisigInfo[wallet.activeWallet.name]"
               class="clearfix homeLine">
                 <div class="clearfix">
-                  multisig account list:
+                  multisig list(
+                  {{multisig.multisigInfo[wallet.activeWallet.name].multisigAccounts.length}}
+                  )
                 </div>
-                <div v-if="multisig.multisigInfo[wallet.activeWallet.name].multisigAccounts.length == 0">
+                <div v-if="
+                      multisig.multisigInfo[wallet.activeWallet.name].multisigAccounts.length == 0">
                   this account does not own any multisig account
                 </div>
                 <div
@@ -117,6 +120,27 @@
                   {{ m.publicKey }}
                 </div>
               </div>
+              <div>
+                <div>
+                  cosigner list(
+                  {{multisig.multisigInfo[wallet.activeWallet.name].cosignatories.length}}
+                  )
+                </div>
+                <div v-if="
+                       multisig.multisigInfo[wallet.activeWallet.name].cosignatories.length == 0">
+                  this account does not own any cosigner
+                </div>
+                <div
+                        v-for="
+                        (c, i) in multisig.multisigInfo[wallet.activeWallet.name].cosignatories"
+                        v-else
+                        :key="i"
+                        class="clearfix"
+                >
+                  {{ c.publicKey }}
+                </div>
+              </div>
+
             </div>
           </v-card-title>
         </v-card>
@@ -139,6 +163,7 @@ export default {
   ]),
   methods: {
     reloadMultisigInfo(wallet) {
+      console.log(this.multisig.multisigInfo[this.wallet.activeWallet.name])
       this.$store.dispatch('multisig/REFRESH_MULTISIG_INFO', {
         wallet,
         mode: GET_MULTISIG_MODES.RELOAD,
