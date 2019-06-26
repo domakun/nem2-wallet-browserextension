@@ -27,7 +27,6 @@ import {
   zip, of,
 } from 'rxjs';
 
-import { formatTransactions } from './formatTransactions';
 import { timestampNemesisBlock } from '../network/types';
 
 const getAccountTransactionsById = (
@@ -50,11 +49,10 @@ const getAccountTransactionsById = (
             { ...t, timestamp: res.timestamp.compact() / 1000 + timestampNemesisBlock }
           ))),
         flatMap(x => x),
-        flatMap(formatTransactions),
         toArray(),
       )
       .subscribe(
-        formattedTransactions => resolve(formattedTransactions),
+        tx => resolve(tx),
         // eslint-disable-next-line no-console
         (error) => { console.error(error); resolve(false); },
       );

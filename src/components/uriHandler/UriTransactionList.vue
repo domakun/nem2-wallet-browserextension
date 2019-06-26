@@ -165,15 +165,15 @@
             </v-list-tile-content>
           </v-list-tile-tile>
         </v-list>
-        <template v-for="(mosaic) in uriTx.transaction.mosaics">
-          <v-list :key="mosaic.id.toHex()">
+        <template v-for="(mosaic, j) in uriTx.transaction.mosaics">
+          <v-list :key="i+'-'+j">
             <v-list-tile>
               <v-list-tile-action>
                 <v-icon>group_work</v-icon>
               </v-list-tile-action>
               <v-list-tile-content>
                 <v-list-tile-title>
-                  {{ networkCurrencyIdToName(mosaic.id.toHex()) }}:&nbsp;
+                  {{ mosaic.name || mosaic.id.toHex() }}:&nbsp;
                   {{ mosaic.amount.compact().toLocaleString() }}
                 </v-list-tile-title>
               </v-list-tile-content>
@@ -189,7 +189,6 @@
 import { mapState } from 'vuex';
 import { QRCodeGenerator } from 'nem2-qr-library';
 import Confirmation from '../Confirmation.vue';
-import { networkCurrencyIdToName } from '../../infrastructure/network/utils/nerworkCurrencyToName';
 
 export default {
   components: {
@@ -210,7 +209,6 @@ export default {
       toggleDialog: false,
       confirmationTitle: 'Are sure you want to accept this transaction?',
       body: 'This transaction came from a URI link, and is to be sent to an exernal service.  Please confirm all details once more before sending.',
-      networkCurrencyIdToName,
     };
   },
   computed: {

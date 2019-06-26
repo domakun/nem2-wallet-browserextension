@@ -254,9 +254,9 @@ import {
 
 import { TransactionURI } from 'nem2-uri-scheme';
 import { mapState } from 'vuex';
-import { networkCurrencyIdToName } from '../../infrastructure/network/utils/nerworkCurrencyToName';
 import { txTypeNameFromTypeId } from '../../infrastructure/transactions/transactions-types';
 import store from '../../store/index';
+
 import Errors from '../Errors.vue';
 import UriTransactionList from './UriTransactionList.vue';
 
@@ -283,6 +283,7 @@ export default {
       'wallet',
       'transactions',
       'application',
+      'assets',
     ]),
     activeWallet() {
       return this.$store.getters['wallet/GET_ACTIVE_WALLET'];
@@ -314,7 +315,7 @@ export default {
       );
 
       if (this.txAmount > 0) this.mosaics.unshift(nativeCurrency);
-
+      const { generationHash } = this;
       const transaction = TransferTransaction.create(
         Deadline.create(),
         Address.createFromRawAddress(this.txRecipient),
@@ -328,16 +329,36 @@ export default {
 
       const transactionURI = new TransactionURI(
         serializedTransaction,
-        this.generationHash,
+        generationHash,
         this.endpoint,
       ).build();
 
-      const formattedMosaics = transaction.mosaics
-        .map(mosaic => ({
+      const formattedMosaics = this.mosaics.map((mosaic) => {
+        if (mosaic.id.fullName) {
+          return {
+            ...mosaic,
+            mosaicName: mosaic.id.fullName,
+            mosaicAmount: mosaic.amount.compact(),
+          };
+        }
+
+        if (!this.assets.networkAssets
+            || !this.assets.networkAssets[generationHash]) {
+          return {
+            ...mosaic,
+            mosaicName: mosaic.id.toHex(),
+            mosaicAmount: mosaic.amount.compact(),
+          };
+        }
+
+        const networkAsset = this.assets.networkAssets[generationHash]
+          .find(netAsset => netAsset.assetId === mosaic.id.toHex());
+        return {
           ...mosaic,
-          mosaicName: networkCurrencyIdToName(mosaic.id.toHex()),
+          mosaicName: networkAsset.name || networkAsset.assetId,
           mosaicAmount: mosaic.amount.compact(),
-        }));
+        };
+      });
 
       this.$store.dispatch('transactions/SAVE_CREATED_URI', {
         wallet: this.activeWallet,
@@ -347,7 +368,7 @@ export default {
           txRecipient: this.txRecipient,
           formattedMosaics,
           txType: txTypeNameFromTypeId(transaction.type),
-          generationHash: this.generationHash,
+          generationHash,
           endpoint: this.endpoint,
         },
       });

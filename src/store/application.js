@@ -23,7 +23,7 @@ import fetch from 'node-fetch';
 import { BlockHttp } from 'nem2-sdk';
 import { timestampNemesisBlock } from '../infrastructure/network/types';
 
-const officialNodeListURL = 'https://api.swissvite.org/nemNodes';
+const officialNodeListURL = 'https://api.nemesis.land/nodes';
 // const officialNodeListURL = 'http://13.114.200.132:8000/assets/api-address.json';
 
 const state = {
@@ -51,6 +51,9 @@ const getters = {
   },
   GET_BLOCKS() {
     return state.blocks;
+  },
+  GET_ACTIVE_NODE() {
+    return state.activeNode;
   },
 };
 

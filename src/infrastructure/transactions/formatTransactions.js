@@ -20,10 +20,7 @@
 
 /* eslint-disable indent */
 
-import {
-  TransactionType, Address,
-} from 'nem2-sdk';
-import { networkCurrencyIdToName } from '../network/utils/nerworkCurrencyToName';
+import { TransactionType, Address } from 'nem2-sdk';
 import { txTypeNameFromTypeId } from './transactions-types';
 
 
@@ -40,7 +37,8 @@ export const formatDate = (d) => {
   return `${year.toString().substring(2)}/${month}/${date} ${hours}:${minutes}`;
 };
 
-const getBody = (tx) => {
+const getBody = (tx, namedAssets) => new Promise(async (resolve, reject) => {
+    try {
     // The body items will be displayed iteratively as the keys depend on the transaction type
     // The key order will dictate the display order
     const body = [];
@@ -63,20 +61,30 @@ const getBody = (tx) => {
 
             if (tx.mosaics.length > 0) {
               let int = 0;
-              tx.mosaics.forEach((mosaic) => {
+
+              const mosaics = tx.mosaics.map((mosaic) => {
+                const { name } = namedAssets
+                  .find(namedMosaic => namedMosaic.assetId === mosaic.id.toHex());
+                return { ...mosaic, name };
+              });
+              mosaics.forEach((mosaic) => {
                   int += 1;
                   body.push(
                       { key: `Amount ${int}`, value: mosaic.amount.compact().toLocaleString() },
                       {
                           key: `Asset ID ${int}`,
-                          value: networkCurrencyIdToName(mosaic.id.toHex()),
+                          value: mosaic.name
+                            ? `${mosaic.name} (${mosaic.id.toHex()})`
+                            : mosaic.id.toHex(),
                       },
                   );
                   if (int <= maxNumberOfMosaicsInMainProps) {
                     mainProps.push(
                       {
                         key: mosaic.amount.compact().toLocaleString(),
-                        value: networkCurrencyIdToName(mosaic.id.toHex()),
+                        value: mosaic.name
+                          ? `${mosaic.name} (${mosaic.id.toHex()})`
+                          : mosaic.id.toHex(),
                       },
                     );
                   }
@@ -94,9 +102,9 @@ const getBody = (tx) => {
                 case 1:
                     // This is a child namespace
                     body.push(
-                        { key: 'Namespace Name', value: tx.namespaceName },
-                        { key: 'Duration (blocks)', value: 0 },
-                        { key: 'Parent Namespace Id', value: tx.parentId.toHex().toLowerCase() },
+                      { key: 'Namespace Name', value: tx.namespaceName },
+                      { key: 'Duration (blocks)', value: 0 },
+                      { key: 'Parent Namespace Id', value: tx.parentId.toHex().toLowerCase() },
                     );
                   // eslint-disable-next-line no-case-declarations
                   childOf = { key: 'Child of: ', value: tx.parentId.toHex().toLowerCase() };
@@ -106,8 +114,8 @@ const getBody = (tx) => {
                 default:
                     // This is a root-level namespace
                     body.push(
-                        { key: 'Namespace Name', value: tx.namespaceName },
-                        { key: 'Duration (blocks)', value: tx.duration.compact().toLocaleString() },
+                      { key: 'Namespace Name', value: tx.namespaceName },
+                      { key: 'Duration (blocks)', value: tx.duration.compact().toLocaleString() },
                     );
                     namespaceName = { key: 'name: ', value: tx.namespaceName };
                   mainProps = [namespaceName];
@@ -118,13 +126,13 @@ const getBody = (tx) => {
         case TransactionType.ADDRESS_ALIAS:
             body.push(
                 {
-                    key: 'Alias action type',
-                    value: tx.actionType === 1 ? 'Link' : 'Unlink',
+                  key: 'Alias action type',
+                  value: tx.actionType === 1 ? 'Link' : 'Unlink',
                 },
                 { key: 'Address', value: new Address(tx.address.address).pretty() },
                 {
-                    key: 'Namespace Id',
-                    value: tx.namespaceId.toHex().toLowerCase(),
+                  key: 'Namespace Id',
+                  value: tx.namespaceId.toHex().toLowerCase(),
                 },
             );
 
@@ -138,8 +146,8 @@ const getBody = (tx) => {
         case TransactionType.MOSAIC_ALIAS:
             body.push(
                 {
-                    key: 'Alias action type',
-                    value: tx.actionType === 1 ? 'Link' : 'Unlink',
+                  key: 'Alias action type',
+                  value: tx.actionType === 1 ? 'Link' : 'Unlink',
                 },
                 { key: 'Mosaic Id', value: tx.mosaicId.toHex().toLowerCase() },
                 {
@@ -150,8 +158,8 @@ const getBody = (tx) => {
 
             mainProps.push(
               {
-              key: tx.actionType === 0 ? 'Link mosaic Id: ' : 'Unlink mosaic Id: ',
-              value: tx.mosaicId.toHex().toLowerCase(),
+                key: tx.actionType === 0 ? 'Link mosaic Id: ' : 'Unlink mosaic Id: ',
+                value: tx.mosaicId.toHex().toLowerCase(),
               },
               {
                 key: tx.actionType === 0 ? 'to namespace: ' : 'from namespace: ',
@@ -165,27 +173,27 @@ const getBody = (tx) => {
             body.push(
                 { key: 'Mosaic Id', value: tx.mosaicId.toHex().toLowerCase() },
                 {
-                    key: 'Divisibility (decimals)',
-                    value: tx.mosaicProperties.divisibility,
+                  key: 'Divisibility (decimals)',
+                  value: tx.mosaicProperties.divisibility,
                 },
                 {
-                    key: 'Duration (blocks)',
-                    value: (tx.mosaicProperties.duration === undefined
-                        || tx.mosaicProperties.duration.compact() === 0)
-                        ? 'unlimited'
-                        : tx.mosaicProperties.duration.compact().toLocaleString(),
+                  key: 'Duration (blocks)',
+                  value: (tx.mosaicProperties.duration === undefined
+                      || tx.mosaicProperties.duration.compact() === 0)
+                      ? 'unlimited'
+                      : tx.mosaicProperties.duration.compact().toLocaleString(),
                 },
                 {
-                    key: 'Levy mutable',
-                    value: tx.mosaicProperties.levyMutable,
+                  key: 'Levy mutable',
+                  value: tx.mosaicProperties.levyMutable,
                 },
                 {
-                    key: 'Supply mutable',
-                    value: tx.mosaicProperties.supplyMutable,
+                  key: 'Supply mutable',
+                  value: tx.mosaicProperties.supplyMutable,
                 },
                 {
-                    key: 'Transferable',
-                    value: tx.mosaicProperties.transferable,
+                  key: 'Transferable',
+                  value: tx.mosaicProperties.transferable,
                 },
             );
 
@@ -194,15 +202,15 @@ const getBody = (tx) => {
                 key: 'Mosaic Id: ', value: tx.mosaicId.toHex().toLowerCase(),
               },
               {
-                  key: 'Divisibility (decimals): ',
-                  value: tx.mosaicProperties.divisibility,
+                key: 'Divisibility (decimals): ',
+                value: tx.mosaicProperties.divisibility,
               },
               {
-                  key: 'Duration (blocks): ',
-                  value: (tx.mosaicProperties.duration === undefined
-                    || tx.mosaicProperties.duration.compact() === 0)
-                      ? 'unlimited'
-                      : tx.mosaicProperties.duration.compact().toLocaleString(),
+                key: 'Duration (blocks): ',
+                value: (tx.mosaicProperties.duration === undefined
+                  || tx.mosaicProperties.duration.compact() === 0)
+                    ? 'unlimited'
+                    : tx.mosaicProperties.duration.compact().toLocaleString(),
               },
             );
 
@@ -212,12 +220,12 @@ const getBody = (tx) => {
             body.push(
                 { key: 'Mosaic Id', value: tx.mosaicId.toHex().toLowerCase() },
                 {
-                    key: 'Direction',
-                    value: tx.direction === 0 ? 'Decrease' : 'Increase',
+                  key: 'Direction',
+                  value: tx.direction === 0 ? 'Decrease' : 'Increase',
                 },
                 {
-                    key: 'Delta',
-                    value: tx.delta.compact().toLocaleString(),
+                  key: 'Delta',
+                  value: tx.delta.compact().toLocaleString(),
                 },
             );
 
@@ -237,9 +245,8 @@ const getBody = (tx) => {
 
         case TransactionType.MODIFY_MULTISIG_ACCOUNT:
             body.push(
-                { key: 'Min. approval delta', value: tx.minApprovalDelta },
-                { key: 'Min. removal delta', value: tx.minRemovalDelta },
-                // notifications
+              { key: 'Min. approval delta', value: tx.minApprovalDelta },
+              { key: 'Min. removal delta', value: tx.minRemovalDelta },
             );
 
             mainProps.push(
@@ -256,20 +263,20 @@ const getBody = (tx) => {
 
         case TransactionType.LOCK:
             body.push(
-                { key: 'Locked amount', value: tx.mosaic.amount.compact().toLocaleString() },
-                { key: 'Locked asset Id', value: tx.mosaic.id.toHex() },
-                {
-                    key: 'Duration (blocks)',
-                    value: tx.duration.compact().toLocaleString(),
-                },
+              { key: 'Locked amount', value: tx.mosaic.amount.compact().toLocaleString() },
+              { key: 'Locked asset Id', value: tx.mosaic.id.toHex() },
+              {
+                key: 'Duration (blocks)',
+                value: tx.duration.compact().toLocaleString(),
+              },
             );
 
             mainProps.push(
               { key: 'Locked amount: ', value: tx.mosaic.amount.compact().toLocaleString() },
               { key: 'Locked asset Id: ', value: tx.mosaic.id.toHex() },
               {
-                  key: 'Duration (blocks): ',
-                  value: tx.duration.compact().toLocaleString(),
+                key: 'Duration (blocks): ',
+                value: tx.duration.compact().toLocaleString(),
               },
             );
 
@@ -277,21 +284,21 @@ const getBody = (tx) => {
 
         case TransactionType.SECRET_LOCK:
             body.push(
-                { key: 'Locked amount', value: tx.mosaic.amount.compact().toLocaleString() },
-                { key: 'Locked asset Id', value: tx.mosaic.id.toHex() },
-                {
-                    key: 'Duration (blocks)',
-                    value: tx.duration.compact(),
-                },
-                { key: 'Secret', value: tx.secret },
+              { key: 'Locked amount', value: tx.mosaic.amount.compact().toLocaleString() },
+              { key: 'Locked asset Id', value: tx.mosaic.id.toHex() },
+              {
+                key: 'Duration (blocks)',
+                value: tx.duration.compact(),
+              },
+              { key: 'Secret', value: tx.secret },
             );
 
             mainProps.push(
               { key: 'Locked amount: ', value: tx.mosaic.amount.compact().toLocaleString() },
               { key: 'Locked asset Id: ', value: tx.mosaic.id.toHex() },
               {
-                  key: 'Duration (blocks): ',
-                  value: tx.duration.compact(),
+                key: 'Duration (blocks): ',
+                value: tx.duration.compact(),
               },
               { key: 'Secret: ', value: `${tx.secret.substring(0, 20)}...` },
             );
@@ -300,13 +307,13 @@ const getBody = (tx) => {
 
         case TransactionType.SECRET_PROOF:
             body.push(
-                { key: 'Secret', value: tx.secret },
-                { key: 'Proof', value: tx.proof },
+              { key: 'Secret', value: tx.secret },
+              { key: 'Proof', value: tx.proof },
             );
 
             mainProps.push(
-                { key: 'Secret: ', value: `${tx.secret.substring(0, 20)}...` },
-                { key: 'Proof: ', value: `${tx.proof.substring(0, 20)}...` },
+              { key: 'Secret: ', value: `${tx.secret.substring(0, 20)}...` },
+              { key: 'Proof: ', value: `${tx.proof.substring(0, 20)}...` },
             );
 
             break;
@@ -325,8 +332,8 @@ const getBody = (tx) => {
 
         case TransactionType.LINK_ACCOUNT:
             body.push(
-                { key: 'Remote account key', value: tx.remoteAccountKey },
-                { key: 'Link action', value: tx.actionType === 0 ? 'Link' : 'Unlink' },
+              { key: 'Remote account key', value: tx.remoteAccountKey },
+              { key: 'Link action', value: tx.actionType === 0 ? 'Link' : 'Unlink' },
             );
 
             mainProps.push(
@@ -343,24 +350,31 @@ const getBody = (tx) => {
         type1: txTypeNameFromTypeId(tx.type),
         mainProps,
     };
-    return { body, headerExtension };
-};
+
+      resolve({ body, headerExtension });
+    } catch (error) {
+      reject(error);
+    }
+  });
 
 const tinyAddress = address =>
   // eslint-disable-next-line implicit-arrow-linebreak
   `${address.substring(0, 13).toLowerCase()}...${address.substring(42).toLowerCase()}`;
 
-const formatTransaction = (tx, numberOfTransactionsInAggregate) => {
-    const signer = new Address(tx.signer.address.address).pretty();
-    const signerTiny = tinyAddress(signer);
-    const recipient = tx.recipient ? new Address(tx.recipient.address).pretty() : '';
-    const recipientTiny = recipient === '' ? '' : tinyAddress(recipient);
-    const type2 = tx.aggregate ? tx.aggregate : '';
-    const { body, headerExtension } = getBody(tx);
-    const { type1, mainProps } = headerExtension;
-    const numberOfAssetsInTransfer = type1 === 'Transfer' ? tx.mosaics.length : null;
+const formatTransaction = (
+  tx, namedAssets,
+) => new Promise(async (resolve, reject) => {
+    try {
+      const signer = new Address(tx.signer.address.address).pretty();
+      const signerTiny = tinyAddress(signer);
+      const recipient = tx.recipient ? new Address(tx.recipient.address).pretty() : '';
+      const recipientTiny = recipient === '' ? '' : tinyAddress(recipient);
+      const type2 = tx.aggregate ? tx.aggregate : '';
+      const { body, headerExtension } = await getBody(tx, namedAssets);
+      const { type1, mainProps } = headerExtension;
+      const numberOfAssetsInTransfer = type1 === 'Transfer' ? tx.mosaics.length : null;
 
-    return {
+      resolve({
         signer,
         signerTiny,
         recipient,
@@ -374,28 +388,49 @@ const formatTransaction = (tx, numberOfTransactionsInAggregate) => {
         type1,
         mainProps,
         numberOfAssetsInTransfer,
-        numberOfTransactionsInAggregate,
         deadline: formatDate(new Date(tx.deadline.value)),
         timestamp: tx.timestamp,
         date: formatDate(new Date(tx.timestamp * 1000)),
-    };
-};
-
-export const formatTransactions = (tx) => {
-    if (tx.innerTransactions) {
-        return tx.innerTransactions.map((t) => {
-            t.transactionInfo.hash = tx.transactionInfo.hash;
-            t.timestamp = tx.timestamp;
-
-            t.aggregate = txTypeNameFromTypeId(
-              tx.type,
-              tx.innerTransactions.length,
-            );
-            return formatTransaction(t);
-        });
+      });
+    } catch (error) {
+      reject(error);
     }
-    return [formatTransaction(tx, null)];
-};
+  });
+
+export const formatTransactions = (
+  transactions, namedAssets,
+) => new Promise(async (resolve, reject) => {
+  try {
+    const formatted = await Promise.all(transactions.map(tx => new Promise(async (res, rej) => {
+        try {
+          if (tx.innerTransactions) {
+            const formattedTransactionsPromises = tx.innerTransactions.map((t) => {
+                if (!t.transactionInfo) t.transactionInfo = {};
+                t.transactionInfo.hash = tx.transactionInfo.hash;
+                t.transactionInfo.height = tx.transactionInfo.height;
+                t.timestamp = tx.timestamp;
+
+                t.aggregate = txTypeNameFromTypeId(
+                  tx.type,
+                  tx.innerTransactions.length,
+                );
+                // @TODO add a numberOfTransactionsInAggregate property
+                return formatTransaction(t, namedAssets);
+            });
+
+            res(await Promise.all(formattedTransactionsPromises));
+          } else {
+            res([await formatTransaction(tx, namedAssets)]);
+          }
+        } catch (error) {
+          rej(error);
+        }
+        })));
+    resolve(Array.prototype.concat.apply([], formatted));
+  } catch (error) {
+    reject(error);
+  }
+});
 
 export const removeDuplicatesAndSortByBlockNumber = (array) => {
     const noDuplicate = array.filter((item, index, self) => index === self.findIndex(t => (

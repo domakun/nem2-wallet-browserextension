@@ -19,6 +19,7 @@
  * along with nem2-wallet-browserextension.  If not, see <http://www.gnu.org/licenses/>.
  */
 import Vue from 'vue';
+import { MosaicId, MosaicHttp, NamespaceHttp } from 'nem2-sdk';
 import getAccountTransactionsById from '../infrastructure/transactions/getAccountTransactionsById';
 import { removeDuplicatesAndSortByBlockNumber, formatTransactions } from '../infrastructure/transactions/formatTransactions';
 import {
@@ -28,7 +29,7 @@ import {
   txTypeNames,
   txFilterNameFromName,
 } from '../infrastructure/transactions/transactions-types';
-
+import { NetworkAsset } from '../infrastructure/assets/assets-types';
 
 const state = {
   transactions: false,
@@ -88,6 +89,94 @@ const actions = {
   },
 
 
+  async HANDLE_NEW_TRANSACTIONS({ dispatch, rootState }, transactions) {
+    const { activeNode } = rootState.application;
+    const generationHash = rootState.application.generationHashes[activeNode];
+    const networkAssets = rootState.assets.networkAssets[generationHash] || [];
+
+    const mosaicIdsToLookup = [];
+    const namespaceIdsToLookup = [];
+    const flattenedNewTxWithMosaics = [];
+
+    // @TODO: could alsto take mosaicId keys
+    // (eg MosaicDefinitionTransaction, MosaicSupplyChangeTransaction)
+
+    // Retrieve all the mosaics present in the transactions
+    transactions.forEach((tx) => {
+      if (Object.keys(tx).indexOf('mosaics') > -1) {
+        flattenedNewTxWithMosaics.push(tx);
+        return;
+      }
+      if (Object.keys(tx).indexOf('innerTransactions') > -1) {
+        tx.innerTransactions.forEach((itx) => {
+          if (Object.keys(itx).indexOf('mosaics') > -1) {
+            flattenedNewTxWithMosaics.push(itx);
+          }
+        });
+      }
+    });
+
+    // Split the mosaic we found in 3 categories:
+    // The ones we already have the name of, the ones that have a MosaicId as an Id
+    // and the ones that have a NamespaceId as an Id
+    flattenedNewTxWithMosaics.forEach((t) => {
+      t.mosaics.forEach((m) => {
+        if (networkAssets.findIndex(({ assetId }) => assetId === m.id.toHex()) > -1) return;
+
+        // eslint-disable-next-line default-case
+        switch (m.id instanceof MosaicId) {
+        case true:
+          if (mosaicIdsToLookup
+            .findIndex(({ id }) => id.toHex() === m.id.toHex()) > -1) return;
+          mosaicIdsToLookup.push(m.id);
+          break;
+        case false:
+          if (namespaceIdsToLookup
+            .findIndex(({ id }) => id.toHex() === m.id.toHex()) > -1) return;
+          namespaceIdsToLookup.push(m.id);
+          break;
+        }
+      });
+    });
+
+    // Get NamespacesNames from the network
+    let newlyNamedNamespaces = [];
+    if (namespaceIdsToLookup.length > 0) {
+      const namespaceNames = await new NamespaceHttp(rootState.application.activeNode)
+        .getNamespacesName(namespaceIdsToLookup)
+        .toPromise();
+      newlyNamedNamespaces = namespaceNames.map(m => new NetworkAsset(
+        // @TODO: this does not really work, as it does not return
+        // the full name of a namespace. I think that the SDK should return
+        // the full name in the same fashion as the getMosaicsNames method
+        m.namespaceId.id.toHex(),
+        m.name,
+      ));
+    }
+
+    // @TODO: could store the names from the namespaces fetched in the store/namespaces
+    // Get MosaicNames from the network
+    let newlyNamedMosaics = [];
+    if (mosaicIdsToLookup.length > 0) {
+      const mosaicNames = await new MosaicHttp(rootState.application.activeNode)
+        .getMosaicsNames(mosaicIdsToLookup)
+        .toPromise();
+
+      newlyNamedMosaics = mosaicNames.map(m => new NetworkAsset(
+        m.mosaicId.id.toHex(),
+        m.names.length > 0 ? m.names[0].name : false,
+      ));
+    }
+
+    // Merge all the HexId => Names pairs we have, update them
+    // And return formatted transactions
+    const allNamedAssets = [...newlyNamedNamespaces, ...newlyNamedMosaics, ...networkAssets];
+    dispatch('assets/SET_NETWORK_ASSETS', { assets: allNamedAssets }, { root: true });
+    const formattedTransactions = await formatTransactions(transactions, allNamedAssets);
+    return formattedTransactions;
+  },
+
+
   async GET_TRANSACTIONS_BY_ID({
     commit,
     dispatch,
@@ -118,6 +207,7 @@ const actions = {
         activeNode: rootState.application.activeNode,
       });
 
+
       if (!newTransactions) {
         await commit('setAccountTransactions', {
           wallet,
@@ -126,10 +216,12 @@ const actions = {
         return;
       }
 
+      const newFormattedTx = await dispatch('HANDLE_NEW_TRANSACTIONS', newTransactions);
+
       const oldTransactions = getters.GET_TRANSACTIONS || [];
       const transactionsToStore = removeDuplicatesAndSortByBlockNumber([
         ...oldTransactions,
-        ...newTransactions,
+        ...newFormattedTx,
       ]);
 
       if (mode === 'init') await commit('updateActiveTransaction', transactionsToStore[0]);
@@ -185,8 +277,8 @@ const actions = {
 
   async FORMAT_TRANSACTION_FROM_LISTENER({ dispatch, commit, getters }, { transaction, wallet }) {
     try {
-      const unconfirmedTx = await formatTransactions(transaction)
-        .map(tx => ({ ...tx, unconfirmed: true }));
+      const formattedTx = await dispatch('HANDLE_NEW_TRANSACTIONS', [transaction]);
+      const unconfirmedTx = formattedTx.map(tx => ({ ...tx, unconfirmed: true }));
 
       const oldTransactions = await getters.GET_TRANSACTIONS || [];
       const transactionsToStore = [...unconfirmedTx, ...oldTransactions];
@@ -226,8 +318,9 @@ const actions = {
         timestamp: getTimestampFromBlock(transaction.transactionInfo.height.compact()),
       };
 
-      const confirmedTx = await formatTransactions(txWithTimestamp)
-        .map(tx => ({ ...tx, unconfirmed: false }));
+      const formattedTx = await dispatch('HANDLE_NEW_TRANSACTIONS', [txWithTimestamp]);
+
+      const confirmedTx = formattedTx.map(tx => ({ ...tx, unconfirmed: false }));
 
       const oldTransactions = await getters.GET_TRANSACTIONS || [];
       const oldConfirmedTransactions = oldTransactions.filter(tx => !tx.unconfirmed);

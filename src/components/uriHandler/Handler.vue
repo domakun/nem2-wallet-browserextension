@@ -61,7 +61,6 @@ import { mapState } from 'vuex';
 import { Address } from 'nem2-sdk';
 import { TransactionURI } from 'nem2-uri-scheme';
 import { txTypeNameFromTypeId } from '../../infrastructure/transactions/transactions-types';
-import { networkCurrencyIdToName } from '../../infrastructure/network/utils/nerworkCurrencyToName';
 import CreateTransferInvoice from './CreateTransferInvoice.vue';
 import UriTransactionList from './UriTransactionList.vue';
 
@@ -79,13 +78,35 @@ export default {
       const transactionQuery = this.$route.query.transaction;
       const transactionURI = TransactionURI.fromURI(transactionQuery);
       const transaction = transactionURI.toTransaction();
+      const { generationHash } = transactionURI;
 
-      const formattedMosaics = transaction.mosaics
-        .map(mosaic => ({
+      const formattedMosaics = this.mosaics.map((mosaic) => {
+        if (mosaic.id.fullName) {
+          return {
+            ...mosaic,
+            mosaicName: mosaic.id.fullName,
+            mosaicAmount: mosaic.amount.compact(),
+          };
+        }
+
+        if (!this.assets.networkAssets
+            || !this.assets.networkAssets[generationHash]) {
+          return {
+            ...mosaic,
+            mosaicName: mosaic.id.toHex(),
+            mosaicAmount: mosaic.amount.compact(),
+          };
+        }
+
+        const networkAsset = this.assets.networkAssets[generationHash]
+          .find(netAsset => netAsset.assetId === mosaic.id.toHex());
+        return {
           ...mosaic,
-          mosaicName: networkCurrencyIdToName(mosaic.id.toHex()),
+          mosaicName: networkAsset.name || networkAsset.assetId,
           mosaicAmount: mosaic.amount.compact(),
-        }));
+        };
+      });
+
       this.$store.dispatch('transactions/SAVE_RECEIVED_URI', {
         uriTransaction: {
           URI: this.$route.query.transaction,
@@ -93,7 +114,7 @@ export default {
           txRecipient: new Address(transaction.recipient.address).pretty(),
           formattedMosaics,
           txType: txTypeNameFromTypeId(transaction.type),
-          generationHash: transactionURI.generationHash,
+          generationHash,
           endpoint: transactionURI.endpoint,
           webhook: transactionURI.webhook,
         },

@@ -301,7 +301,7 @@ const actions = {
     }
 
     // Fetch wallet data and open listeners
-    const promises = [
+    await Promise.all([
       dispatch(
         'namespaces/GET_NAMESPACES_BY_ADDRESS',
         { wallet, mode: GET_NAMESPACES_MODES.ON_WALLET_CHANGE },
@@ -317,20 +317,17 @@ const actions = {
         { wallet, mode: GET_MULTISIG_MODES.ON_WALLET_CHANGE },
         { root: true },
       ),
-    ];
+    ]);
 
+    // Fetch Assets before transactions to avoid unnecessary asset names lookups
     if (wallet.publicAccount.publicKey
       && wallet.publicAccount.publicKey !== emptyPublicKey) {
-      promises.push(
-        dispatch(
-          'transactions/GET_TRANSACTIONS_BY_ID',
-          { wallet, mode: GET_TRANSACTIONS_MODES.INIT },
-          { root: true },
-        ),
+      await dispatch(
+        'transactions/GET_TRANSACTIONS_BY_ID',
+        { wallet, mode: GET_TRANSACTIONS_MODES.INIT },
+        { root: true },
       );
     }
-
-    await Promise.all(promises);
 
     const wsEndpoint = rootState.application
       .activeNode.toLowerCase().replace('http', 'ws');

@@ -22,8 +22,6 @@ import {
   Address,
 } from 'nem2-sdk';
 
-import { networkCurrencyNames } from '../network/utils/nerworkCurrencyToName';
-
 const expirationText = (expiration) => {
  const expired = expiration < 0;
  switch (expired) {
@@ -43,8 +41,8 @@ const expirationText = (expiration) => {
 const sortAlpha = (arr) => {
  if (arr) {
    return arr.sort((a, b) => {
-     const nameA = a.title;
-     const nameB = b.title;
+     const nameA = a.name;
+     const nameB = b.name;
      if (nameA < nameB) return -1;
      if (nameA > nameB) return 1;
      return 0;
@@ -54,17 +52,12 @@ const sortAlpha = (arr) => {
 };
 
 export const sortMosaics = (mosaics) => {
-  const catCurrency = typeof mosaics.find(m => m.title === networkCurrencyNames[0]) !== 'undefined'
-    ? [mosaics.find(m => m.title === networkCurrencyNames[0])]
-    : [];
-
-  const catHarvest = typeof mosaics.find(m => m.title === networkCurrencyNames[1]) !== 'undefined'
-    ? [mosaics.find(m => m.title === networkCurrencyNames[1])]
+  const catCurrency = typeof mosaics.find(m => m.name === 'cat.currency') !== 'undefined'
+    ? [mosaics.find(m => m.name === 'cat.currency')]
     : [];
 
   const notPrimary = mosaics.filter(m => (
-      m.title !== networkCurrencyNames[0]
-      && m.title !== networkCurrencyNames[1]
+      m.name !== 'cat.currency'
     ));
 
   const notExpired = sortAlpha(notPrimary.filter(m => m.active === true));
@@ -72,7 +65,6 @@ export const sortMosaics = (mosaics) => {
 
   return [
     ...catCurrency,
-    ...catHarvest,
     ...notExpired,
     ...expired,
   ];
@@ -80,7 +72,6 @@ export const sortMosaics = (mosaics) => {
 
 // eslint-disable-next-line import/prefer-default-export
 export const formatMosaics = (mosaic, blockHeight) => {
- // eslint-disable-next-line max-len
  const height = mosaic.mosaicInfo.height.compact();
  const expiration = height + mosaic.mosaicInfo.duration.compact() - blockHeight;
  return {

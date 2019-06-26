@@ -170,10 +170,10 @@ export default {
     },
     disabledSendTransaction() {
       if (this.namespaceType === NamespaceType.RootNamespace) {
-        return !validateNamespaceName(this.namespaceName)
+        return !validateNamespaceName(this.namespaceName, this.namespaceType)
           || this.duration === 0;
       }
-      return !validateNamespaceName(this.namespaceName)
+      return !validateNamespaceName(this.namespaceName, this.namespaceType)
         || this.parentNamespaceName === '';
     },
     show: {
