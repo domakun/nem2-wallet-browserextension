@@ -103,8 +103,8 @@ import {
   MosaicAliasTransaction, AliasType,
   Address,
 } from 'nem2-sdk';
-import Confirmation from '../Confirmation.vue';
-import SendConfirmation from './SendConfirmation.vue';
+import Confirmation from '../signature/Confirmation.vue';
+import SendConfirmation from '../signature/SendConfirmation.vue';
 
 function mosaicOrAddress(input) {
   if (input.length === 16) {

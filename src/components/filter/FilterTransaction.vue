@@ -145,25 +145,25 @@
       </v-flex>
     </v-layout>
     <v-layout>
-        <v-card-actions
-                row
-                justify-end
-                align-center
+      <v-card-actions
+        row
+        justify-end
+        align-center
+      >
+        <v-spacer />
+        <v-btn
+          color="primary mx-0"
+          :disabled="disabledSendTransaction"
+          @click="showDialog"
         >
-          <v-spacer />
-          <v-btn
-            color="primary mx-0"
-            :disabled="disabledSendTransaction"
-            @click="showDialog"
-          >
-              Send
-          </v-btn>
-        </v-card-actions>
+          Send
+        </v-btn>
+      </v-card-actions>
 
       <Confirmation
         v-model="isDialogShow"
         :transactions="transactions"
-        :generationHash="generationHash"
+        :generation-hash="generationHash"
         @sent="txSent"
         @error="txError"
       >
@@ -208,38 +208,40 @@
 
 
     <v-dialog
-            v-model="isShowErrorMessage"
-            width="500"
+      v-model="isShowErrorMessage"
+      width="500"
     >
       <v-card>
         <v-card-title
-                class="headline grey lighten-2"
-                primary-title
+          class="headline grey lighten-2"
+          primary-title
         >
           Lack of necessary information
         </v-card-title>
 
         <v-card-text>
-          <div :key="index" v-for="(e,index) in errorMessage">
-            {{e}}
+          <div
+            v-for="(e,index) in errorMessage"
+            :key="index"
+          >
+            {{ e }}
           </div>
         </v-card-text>
-        <v-divider></v-divider>
+        <v-divider />
         <v-card-actions>
-          <v-spacer></v-spacer>
+          <v-spacer />
           <v-btn
-                  color="primary"
-                  flat
-                  @click="
-                            isShowErrorMessage = false;
-                            isDialogShow = false"
+            color="primary"
+            flat
+            @click="
+              isShowErrorMessage = false;
+              isDialogShow = false"
           >
             i see
           </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
-
   </div>
 </template>
 
@@ -256,8 +258,8 @@ import {
   AccountPropertyModification,
 } from 'nem2-sdk';
 import ErrorMessage from '../../infrastructure/transactions/errorMessage';
-import Confirmation from '../Confirmation.vue';
-import SendConfirmation from './SendConfirmation.vue';
+import Confirmation from '../signature/Confirmation.vue';
+import SendConfirmation from '../signature/SendConfirmation.vue';
 
 const FilterType = {
   ADDRESS_FILTER: 0X01,
@@ -346,7 +348,7 @@ export default {
       if (!this.generationHash || this.generationHash.trim() === '') {
         this.errorMessage.push(ErrorMessage.GENERATION_HASH_NULL);
         return false;
-      } else if(this.generationHash.length !== 64) {
+      } if (this.generationHash.length !== 64) {
         this.errorMessage.push(ErrorMessage.GENERATION_HASH_ERROR);
         return false;
       }

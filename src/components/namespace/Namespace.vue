@@ -51,10 +51,18 @@
 
           <v-btn
             icon
-            :disabled="wallet.activeWallet.isWatchOnly"
-            @click.stop="registerNamespace = true"
+            :disabled="wallet.activeWallet.walletType === walletTypes.WATCH_ONLY_WALLET"
+            @click.stop="wallet.activeWallet.isWatchOnly
+              ? showPasswordInput = true : registerNamespace = true"
           >
             <v-icon>add_box</v-icon>
+          </v-btn>
+          <v-btn
+            href="https://nemtech.github.io/concepts/namespace.html"
+            target="_new"
+            icon
+          >
+            <v-icon>local_library</v-icon>
           </v-btn>
         </v-toolbar>
 
@@ -93,6 +101,12 @@
         </v-card-text>
       </v-card>
     </v-flex>
+    <PasswordInput
+      :visible="showPasswordInput"
+      :wallet-name="wallet.activeWallet.name"
+      :wallet-type="wallet.activeWallet.walletType"
+      @close="showPasswordInput = false"
+    />
     <NamespaceRegistration
       :visible="registerNamespace"
       @close="registerNamespace = false"
@@ -102,23 +116,29 @@
 <script>
 import { mapState } from 'vuex';
 import store from '../../store/index';
-import Errors from '../Errors.vue';
-import NamespaceRegistration from './NamespaceRegistration.vue';
-import NamespaceList from './NamespaceList.vue';
+import { walletTypes } from '../../infrastructure/wallet/wallet-types';
 import { GET_NAMESPACES_MODES } from '../../infrastructure/namespaces/namespaces-types';
+
+import Errors from '../Errors.vue';
+import NamespaceList from './NamespaceList.vue';
+import PasswordInput from '../wallet/PasswordInput.vue';
+import NamespaceRegistration from './NamespaceRegistration.vue';
 
 export default {
   name: 'Namespace',
   store,
   components: {
     Errors,
-    NamespaceRegistration,
     NamespaceList,
+    PasswordInput,
+    NamespaceRegistration,
   },
   data() {
     return {
-      registerNamespace: false,
       GET_NAMESPACES_MODES,
+      walletTypes,
+      showPasswordInput: false,
+      registerNamespace: false,
     };
   },
   computed: mapState([

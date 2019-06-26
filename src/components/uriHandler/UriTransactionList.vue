@@ -188,7 +188,7 @@
 <script>
 import { mapState } from 'vuex';
 import { QRCodeGenerator } from 'nem2-qr-library';
-import Confirmation from '../Confirmation.vue';
+import Confirmation from '../signature/Confirmation.vue';
 
 export default {
   components: {
