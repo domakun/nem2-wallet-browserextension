@@ -143,70 +143,70 @@
       </v-layout>
 
 
-<!--      <v-layout>-->
-<!--        <v-flex sm>-->
-<!--          <v-layout row>-->
-<!--            <v-flex offset-xs1>-->
-<!--              <v-btn-->
-<!--                      dark-->
-<!--                      :color="isRemove ?'red':'primary' "-->
-<!--                      @click="isRemove = !isRemove"-->
-<!--              >-->
-<!--                {{ isRemove?'Remove':'Add'}}-->
-<!--                <v-icon-->
-<!--                        dark-->
-<!--                        right-->
-<!--                >-->
-<!--                  {{ isRemove ?'remove_circle_outline':'add_circle_outline' }}-->
-<!--                </v-icon>-->
-<!--              </v-btn>-->
-<!--            </v-flex>-->
-<!--            <v-flex xs6>-->
-<!--              <v-text-field-->
-<!--                      v-model="currentCosignatoryPublicKey"-->
-<!--                      placeholder="input cosignatory publickey"-->
-<!--                      solo-->
-<!--              />-->
-<!--            </v-flex>-->
-<!--            <v-flex xs3>-->
-<!--              <v-btn-->
-<!--                      :disabled="currentCosignatoryPublicKey === ''"-->
-<!--                      color="primary"-->
-<!--                      @click="addCosignatory"-->
-<!--              >-->
-<!--                <v-icon>add</v-icon>-->
-<!--              </v-btn>-->
-<!--            </v-flex>-->
-<!--          </v-layout>-->
-<!--          <template v-for="(cosignatory, index) in cosignatoryList">-->
-<!--            <v-list-->
-<!--                    :key="index"-->
-<!--                    two-line-->
-<!--            >-->
-<!--              <v-list-tile>-->
-<!--                <v-list-tile-action>-->
-<!--                  <v-icon>style</v-icon>-->
-<!--                </v-list-tile-action>-->
-<!--                <v-list-tile-content>-->
-<!--                  <v-subheader>-->
-<!--                    {{ cosignatory.modificationType == 0 ? 'add':'remove' }}-->
-<!--                  </v-subheader>-->
-<!--                  cosignatory publickey:-->
-<!--                  {{ cosignatory.cosignatoryPublicKey }}-->
-<!--                </v-list-tile-content>-->
-<!--                <v-btn-->
-<!--                        fab-->
-<!--                        small-->
-<!--                        color="error"-->
-<!--                        @click="removeCosignatory(index)"-->
-<!--                >-->
-<!--                  <v-icon>remove</v-icon>-->
-<!--                </v-btn>-->
-<!--              </v-list-tile>-->
-<!--            </v-list>-->
-<!--          </template>-->
-<!--        </v-flex>-->
-<!--      </v-layout>-->
+      <v-layout>
+        <v-flex sm>
+          <v-layout row>
+            <v-flex offset-xs1>
+              <v-btn
+                      dark
+                      :color="isRemove ?'red':'primary' "
+                      @click="isRemove = !isRemove"
+              >
+                {{ isRemove?'Remove':'Add'}}
+                <v-icon
+                        dark
+                        right
+                >
+                  {{ isRemove ?'remove_circle_outline':'add_circle_outline' }}
+                </v-icon>
+              </v-btn>
+            </v-flex>
+            <v-flex xs6>
+              <v-text-field
+                      v-model="currentCosignatoryPublicKey"
+                      placeholder="input cosignatory publickey"
+                      solo
+              />
+            </v-flex>
+            <v-flex xs3>
+              <v-btn
+                      :disabled="currentCosignatoryPublicKey === ''"
+                      color="primary"
+                      @click="addCosignatory"
+              >
+                <v-icon>add</v-icon>
+              </v-btn>
+            </v-flex>
+          </v-layout>
+          <template v-for="(cosignatory, index) in cosignatoryList">
+            <v-list
+                    :key="index"
+                    two-line
+            >
+              <v-list-tile>
+                <v-list-tile-action>
+                  <v-icon>style</v-icon>
+                </v-list-tile-action>
+                <v-list-tile-content>
+                  <v-subheader>
+                    {{ cosignatory.modificationType == 0 ? 'add':'remove' }}
+                  </v-subheader>
+                  cosignatory publickey:
+                  {{ cosignatory.cosignatoryPublicKey }}
+                </v-list-tile-content>
+                <v-btn
+                        fab
+                        small
+                        color="error"
+                        @click="removeCosignatory(index)"
+                >
+                  <v-icon>remove</v-icon>
+                </v-btn>
+              </v-list-tile>
+            </v-list>
+          </template>
+        </v-flex>
+      </v-layout>
 
       <v-layout>
         <v-layout
@@ -286,15 +286,8 @@ import {
   AggregateTransaction,
   TransactionType,
   MultisigCosignatoryModification,
-  UInt64,
-  LockFundsTransaction,
-  Mosaic,
   AccountHttp,
   Address,
-  Listener,
-  TransactionHttp,
-  NetworkCurrencyMosaic,
-  NamespaceHttp,
 } from 'nem2-sdk';
 import Confirmation from './Confirmation.vue';
 import SendConfirmation from './SendConfirmation.vue';
@@ -372,7 +365,6 @@ export default {
         cosignatoryPublicKey: currentCosignatoryPublicKey,
         modificationType: isRemove ? MultisigCosignatoryModificationType.Remove : MultisigCosignatoryModificationType.Add,
       });
-      console.log(this.cosignatoryList)
       this.currentCosignatoryPublicKey = '';
     },
     removeCosignatory(index) {
@@ -404,81 +396,84 @@ export default {
       ];
       if (this.currentMultisigAccount.minApproval > 1) {
         this.createBonded();
+      } else if (this.cosignatoryList.length > 0) {
+        this.transactionType = TransactionType.AGGREGATE_BONDED;
+        this.createBondedModifyTransaction();
       } else {
         this.createComplete();
       }
     },
     async createBonded() {
-      const multisigPublicAccount = PublicAccount
-        .createFromPublicKey(this.currentMultisigPublicKey, NetworkType.MIJIN_TEST);
-      const { activeWallet } = this.wallet;
-      const { account } = activeWallet;
-      const network = NetworkType.MIJIN_TEST;
-      const endpoint = this.application.activeNode;
-      const transactionHttp = new TransactionHttp(endpoint);
-      const minApprovalDelta = this.approvalDelta;
-      const minRemovalDelta = this.removalDelta;
-      const cosignatories = this.cosignatoryList;
-      const namespaceHttp = new NamespaceHttp(endpoint);
-      const namespaceId = NetworkCurrencyMosaic.NAMESPACE_ID;
-      const mosaicId = await namespaceHttp.getLinkedMosaicId(namespaceId).toPromise();
-
-      const modifyMultisigAccountTx = ModifyMultisigAccountTransaction.create(
-        Deadline.create(),
-        minApprovalDelta,
-        minRemovalDelta,
-        cosignatories.map(co => new MultisigCosignatoryModification(
-          co.modificationType
-            ? MultisigCosignatoryModificationType.Add : MultisigCosignatoryModificationType.Remove,
-          PublicAccount.createFromPublicKey(co.cosignatoryPublicKey, network),
-        )),
-        network,
-      );
-
-      const aggregateTx = new AggregateTransaction(
-        network,
-        TransactionType.AGGREGATE_BONDED,
-        2,
-        Deadline.create(23),
-        UInt64.fromUint(this.maxFee),
-        [
-          modifyMultisigAccountTx.toAggregate(multisigPublicAccount),
-        ],
-      );
-
-      const signedAggregateTx = account
-        .sign(aggregateTx, this.generationHash);
-      this.aggregateTx = signedAggregateTx;
-
-      const { lockFundsMosaicAmount } = this;
-      const lockMosaic = new Mosaic(
-        mosaicId,
-        UInt64.fromUint(lockFundsMosaicAmount >= 10000000 ? lockFundsMosaicAmount : 10000000),
-      );
-
-      const lockFundsTx = new LockFundsTransaction(
-        network,
-        1,
-        Deadline.create(23),
-        UInt64.fromUint(this.lockFundsMaxFee),
-        lockMosaic,
-        UInt64.fromUint(this.lockFundsDuration),
-        signedAggregateTx,
-      );
-      const signedLockFundsTx = activeWallet.account
-        .sign(lockFundsTx, this.generationHash);
-
-      transactionHttp.announce(signedLockFundsTx);
-
-      const listener = new Listener(this.application.activeNode.replace('http', 'ws'), WebSocket);
-
-      const that = this;
-      listener.open().then(() => {
-        listener.confirmed(activeWallet.account.address).subscribe(() => {
-          that.disabledSendAggregateTransaction = false;
-          listener.close();
-        });
-      });
+    //   const multisigPublicAccount = PublicAccount
+    //     .createFromPublicKey(this.currentMultisigPublicKey, NetworkType.MIJIN_TEST);
+    //   const { activeWallet } = this.wallet;
+    //   const { account } = activeWallet;
+    //   const network = NetworkType.MIJIN_TEST;
+    //   const endpoint = this.application.activeNode;
+    //   const transactionHttp = new TransactionHttp(endpoint);
+    //   const minApprovalDelta = this.approvalDelta;
+    //   const minRemovalDelta = this.removalDelta;
+    //   const cosignatories = this.cosignatoryList;
+    //   const namespaceHttp = new NamespaceHttp(endpoint);
+    //   const namespaceId = NetworkCurrencyMosaic.NAMESPACE_ID;
+    //   const mosaicId = await namespaceHttp.getLinkedMosaicId(namespaceId).toPromise();
+    //
+    //   const modifyMultisigAccountTx = ModifyMultisigAccountTransaction.create(
+    //     Deadline.create(),
+    //     minApprovalDelta,
+    //     minRemovalDelta,
+    //     cosignatories.map(co => new MultisigCosignatoryModification(
+    //       co.modificationType
+    //         ? MultisigCosignatoryModificationType.Remove : MultisigCosignatoryModificationType.Add,
+    //       PublicAccount.createFromPublicKey(co.cosignatoryPublicKey, network),
+    //     )),
+    //     network,
+    //   );
+    //
+    //   const aggregateTx = new AggregateTransaction(
+    //     network,
+    //     TransactionType.AGGREGATE_BONDED,
+    //     2,
+    //     Deadline.create(23),
+    //     UInt64.fromUint(this.maxFee),
+    //     [
+    //       modifyMultisigAccountTx.toAggregate(multisigPublicAccount),
+    //     ],
+    //   );
+    //
+    //   const signedAggregateTx = account
+    //     .sign(aggregateTx, this.generationHash);
+    //   this.aggregateTx = signedAggregateTx;
+    //
+    //   const { lockFundsMosaicAmount } = this;
+    //   const lockMosaic = new Mosaic(
+    //     mosaicId,
+    //     UInt64.fromUint(lockFundsMosaicAmount >= 10000000 ? lockFundsMosaicAmount : 10000000),
+    //   );
+    //
+    //   const lockFundsTx = new LockFundsTransaction(
+    //     network,
+    //     1,
+    //     Deadline.create(23),
+    //     UInt64.fromUint(this.lockFundsMaxFee),
+    //     lockMosaic,
+    //     UInt64.fromUint(this.lockFundsDuration),
+    //     signedAggregateTx,
+    //   );
+    //   const signedLockFundsTx = activeWallet.account
+    //     .sign(lockFundsTx, this.generationHash);
+    //
+    //   transactionHttp.announce(signedLockFundsTx);
+    //
+    //   const listener = new Listener(this.application.activeNode.replace('http', 'ws'), WebSocket);
+    //
+    //   const that = this;
+    //   listener.open().then(() => {
+    //     listener.confirmed(activeWallet.account.address).subscribe(() => {
+    //       that.disabledSendAggregateTransaction = false;
+    //       listener.close();
+    //     });
+    //   });
     },
     createComplete() {
       const network = NetworkType.MIJIN_TEST;
@@ -491,11 +486,6 @@ export default {
         Deadline.create(),
         minApprovalDelta,
         minRemovalDelta,
-        // cosignatories.map(co => new MultisigCosignatoryModification(
-        //   co.modificationType
-        //     ? MultisigCosignatoryModificationType.Remove : MultisigCosignatoryModificationType.Add,
-        //   PublicAccount.createFromPublicKey(co.cosignatoryPublicKey, network),
-        // )),
         [],
         network,
       );
@@ -504,6 +494,35 @@ export default {
         [modifyMultisigAccountTx.toAggregate(multisigPublicAccount)],
         NetworkType.MIJIN_TEST,
         [],
+      );
+      this.aggregateTransaction = aggregateTransaction;
+    },
+    async createBondedModifyTransaction() {
+      const multisigPublicAccount = PublicAccount
+        .createFromPublicKey(this.currentMultisigPublicKey, NetworkType.MIJIN_TEST);
+      const network = NetworkType.MIJIN_TEST;
+      const minApprovalDelta = this.approvalDelta;
+      const minRemovalDelta = this.removalDelta;
+      const cosignatories = this.cosignatoryList;
+
+      const modifyMultisigAccountTx = ModifyMultisigAccountTransaction.create(
+        Deadline.create(),
+        minApprovalDelta,
+        minRemovalDelta,
+        cosignatories.map(co => new MultisigCosignatoryModification(
+          co.modificationType
+            ? MultisigCosignatoryModificationType.Remove : MultisigCosignatoryModificationType.Add,
+          PublicAccount.createFromPublicKey(co.cosignatoryPublicKey, network),
+        )),
+        network,
+      );
+
+      const aggregateTransaction = AggregateTransaction.createBonded(
+        Deadline.create(),
+        [
+          modifyMultisigAccountTx.toAggregate(multisigPublicAccount),
+        ],
+        network,
       );
       this.aggregateTransaction = aggregateTransaction;
     },

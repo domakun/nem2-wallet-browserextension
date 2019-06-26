@@ -128,18 +128,17 @@ export default {
     },
     announceCompleteTransaction() {
       const { aggregateTransaction } = this;
-      const { account } = this.wallet.activeWallet;
       const node = this.application.activeNode;
       const transactionHttp = new TransactionHttp(this.application.activeNode);
-      const signedTransaction = account.sign(aggregateTransaction, this.generationHash);
       this.$emit('sent', {
-        txHash: signedTransaction.hash,
+        txHash: aggregateTransaction.hash,
         nodeURL: node,
       });
       transactionHttp
-        .announce(signedTransaction)
+        .announce(aggregateTransaction)
         .subscribe(x => console.log(x), err => console.error(err));
     },
+
     announceBondedTransaction() {
       const { aggregateTransaction } = this;
       const { account } = this.wallet.activeWallet;
@@ -179,7 +178,6 @@ export default {
       });
     },
     signAndAnnounce() {
-      console.log(this.transactionType);
       if (this.transactionType === TransactionType.AGGREGATE_BONDED) {
         this.announceBondedTransaction();
       } else {
