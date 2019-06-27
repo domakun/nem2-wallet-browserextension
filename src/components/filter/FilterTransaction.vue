@@ -211,36 +211,10 @@
       v-model="isShowErrorMessage"
       width="500"
     >
-      <v-card>
-        <v-card-title
-          class="headline grey lighten-2"
-          primary-title
-        >
-          Lack of necessary information
-        </v-card-title>
-
-        <v-card-text>
-          <div
-            v-for="(e,index) in errorMessage"
-            :key="index"
-          >
-            {{ e }}
-          </div>
-        </v-card-text>
-        <v-divider />
-        <v-card-actions>
-          <v-spacer />
-          <v-btn
-            color="primary"
-            flat
-            @click="
-              isShowErrorMessage = false;
-              isDialogShow = false"
-          >
-            i see
-          </v-btn>
-        </v-card-actions>
-      </v-card>
+      <ErrorMessage
+              :errorMessage = 'errorMessage'
+              @hideErrorMessage = 'hideErrorMessage'
+      />
     </v-dialog>
   </div>
 </template>
@@ -257,21 +231,18 @@ import {
   MosaicId,
   AccountPropertyModification,
 } from 'nem2-sdk';
-import ErrorMessage from '../../infrastructure/transactions/errorMessage';
+import { filterValidator } from '../../infrastructure/transactions/transactionFormValidator';
 import Confirmation from '../signature/Confirmation.vue';
 import SendConfirmation from '../signature/SendConfirmation.vue';
-
-const FilterType = {
-  ADDRESS_FILTER: 0X01,
-  MOSAIC_FILTER: 0X02,
-  ENTITY_FILTER: 0X04,
-};
+import ErrorMessage from '../errorMessage/ErrorMessage.vue';
+import { FilterType } from '../../infrastructure/transactions/transactions-types';
 
 export default {
   name: 'FilterTransaction',
   components: {
     Confirmation,
     SendConfirmation,
+    ErrorMessage,
   },
   // eslint-disable-next-line vue/require-prop-types
   props: ['actionType', 'filterType', 'maxFee', 'generationHash'],
@@ -340,82 +311,11 @@ export default {
     removeFilter(index) {
       this.filterList.splice(index, 1);
     },
-    checkCommon() {
-      if (this.maxFee < 0) {
-        this.errorMessage.push(ErrorMessage.MAX_FEE_ERROR);
-        return false;
-      }
-      if (!this.generationHash || this.generationHash.trim() === '') {
-        this.errorMessage.push(ErrorMessage.GENERATION_HASH_NULL);
-        return false;
-      } if (this.generationHash.length !== 64) {
-        this.errorMessage.push(ErrorMessage.GENERATION_HASH_ERROR);
-        return false;
-      }
-      if (this.filterList.length <= 0) {
-        this.errorMessage.push(ErrorMessage.FILTER_LIST_NULL);
-        return false;
-      }
-      return true;
-    },
-    checkAddress() {
-      const flag = this.filterList.every((item) => {
-        const filter = item.hexId;
-        if (!filter || filter.trim() === '') {
-          this.errorMessage.push(ErrorMessage.ADDRESS_NULL);
-          return false;
-        }
-        if (filter.length < 40) {
-          this.errorMessage.push(ErrorMessage.ADDRESS_ERROR);
-          return false;
-        }
-        return true;
-      });
-      return flag;
-    },
-    checkMosaic() {
-      const flag = this.filterList.every((item) => {
-        const filter = item.hexId;
-        if (!filter || filter.trim() === '') {
-          this.errorMessage.push(ErrorMessage.MOSAIC_NULL);
-          return false;
-        }
-        if (filter.length < 16) {
-          this.errorMessage.push(ErrorMessage.MOSAIC_ERROR);
-          return false;
-        }
-        return true;
-      });
-      return flag;
-    },
-    checkForm() {
-      this.errorMessage = [];
-      if (!this.checkCommon()) {
-        return false;
-      }
-      let flag = true;
-      switch (this.filterType) {
-      case FilterType.ADDRESS_FILTER:
-        flag = this.checkAddress();
-        break;
-      case FilterType.MOSAIC_FILTER:
-        flag = this.checkMosaic();
-        break;
-      default: flag = true;
-      }
-      return flag;
-    },
     showDialog() {
-      if (!this.checkForm()) {
+      this.errorMessage = filterValidator(this);
+      if (this.errorMessage.length !== 0) {
         this.isShowErrorMessage = true;
         return;
-      }
-      if (this.filterType === FilterType.ADDRESS_FILTER) {
-        this.generateAddressTransaction();
-      } else if (this.filterType === FilterType.MOSAIC_FILTER) {
-        this.generateMosaicTransaction();
-      } else if (this.filterType === FilterType.ENTITY_FILTER) {
-        this.generateEntityTypeTransaction();
       }
       this.dialogDetails = [
         {
@@ -495,6 +395,9 @@ export default {
         UInt64.fromUint(maxFee),
       );
       this.transactions = [modifyEntity];
+    },
+    hideErrorMessage() {
+      this.isShowErrorMessage = false;
     },
     txSent(result) {
       this.txSendResults.push({

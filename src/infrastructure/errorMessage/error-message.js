@@ -16,4 +16,10 @@ export default {
   MOSAIC_NULL: 'mosaic id is null',
   NO_COSIGNER: 'no cosigner exists in the list.',
   TOO_MUCH_COSIGNER: 'multisig accounts can have up to 10 cosigners.',
+  REMOVAL_TOO_SMALL: 'removal delta is too small',
+  APPROVAL_TOO_SMALL: 'approval delta is too small',
+  REMOVAL_TOO_BIG: 'removal delta is too big',
+  APPROVAL_TOO_BIG: 'removal delta is too big',
+  TOO_LESS_COSIGNERS: 'cosigner list will be less than 0 after this transaction',
+  TOO_MANY_COSIGNERS: 'cosigner list will be more than 10 after this transaction',
 };

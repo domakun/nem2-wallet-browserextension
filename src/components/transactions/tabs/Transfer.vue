@@ -17,7 +17,7 @@
 
 <template>
   <div>
-    <Send :transactionType="transactionType" class="mb-4" />
+    <Transfer :transactionType="transactionType" class="mb-4" />
 
     <v-card class="mb-4">
       <v-toolbar
@@ -47,13 +47,13 @@ import { TransactionType } from 'nem2-sdk';
 import { mapState } from 'vuex';
 import Transactions from '../Transactions.vue';
 import AssetList from '../../asset/AssetList.vue';
-import Send from '../../send/Send.vue';
+import Transfer from '../../transfer/Transfer.vue';
 
 export default {
   components: {
     AssetList,
     Transactions,
-    Send,
+    Transfer,
   },
   computed: mapState(['transactions', 'wallet']),
   data() {

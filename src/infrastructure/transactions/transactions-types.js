@@ -105,3 +105,9 @@ export const transactionTypesFilters = () => {
 
   return filters;
 };
+
+export const FilterType = {
+  ADDRESS_FILTER: 0X01,
+  MOSAIC_FILTER: 0X02,
+  ENTITY_FILTER: 0X04,
+};

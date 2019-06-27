@@ -3,7 +3,10 @@
           column
           class="mt-2 mb-3"
   >
-    <v-container>
+    <v-container v-show="!multisig.multisigInfo[wallet.activeWallet.name].multisigAccounts">
+      this account does not own any multisig to modify
+    </v-container>
+    <v-container v-show="multisig.multisigInfo[wallet.activeWallet.name].multisigAccounts">
       <v-layout
               row
               wrap
@@ -263,8 +266,17 @@
 
       <v-layout column>
         <SendConfirmation
-                :tx-send-data="txSendResults"
+            :tx-send-data="txSendResults"
         />
+        <v-dialog
+                v-model="isShowErrorMessage"
+                width="500"
+        >
+        <ErrorMessage
+            :errorMessage = 'errorMessage'
+            @hideErrorMessage = 'hideErrorMessage'
+        />
+        </v-dialog>
       </v-layout>
     </v-container>
   </v-layout>
@@ -287,17 +299,22 @@ import {
   NetworkCurrencyMosaic,
   UInt64,
 } from 'nem2-sdk';
+import { multisigModifyValidator } from '../../infrastructure/multisig/multisigFormValidator';
 import Confirmation from '../signature/Confirmation.vue';
 import SendConfirmation from '../signature/SendConfirmation.vue';
+import ErrorMessage from '../errorMessage/ErrorMessage.vue';
 
 export default {
   name: 'ModifyMultisig',
   components: {
     Confirmation,
     SendConfirmation,
+    ErrorMessage,
   },
   data() {
     return {
+      isShowErrorMessage:false,
+      errorMessage: [],
       transactionType: -1,
       showLockFunds: true,
       currentMultisigPublicKey: '',
@@ -307,6 +324,8 @@ export default {
       isRemove: false,
       currentCosignatoryPublicKey: '5FA48DA997E605323BCD579ABD6FC996B18DF3289A488A12E3C9CE27C10AAC41',
       cosignatoryList: [],
+      cosignatoryAddList: [],
+      cosignatoryDeleteList: [],
       maxFee: 0,
       lockFundsMosaicType: '@cat.currency',
       lockFundsMosaicAmount: 10000000,
@@ -357,16 +376,33 @@ export default {
   methods: {
     addCosignatory() {
       const { isRemove, currentCosignatoryPublicKey } = this;
-      this.cosignatoryList.push({
+      const cosignerItem = {
         cosignatoryPublicKey: currentCosignatoryPublicKey,
         modificationType: isRemove ? MultisigCosignatoryModificationType.Remove : MultisigCosignatoryModificationType.Add,
-      });
+      }
+      if (isRemove) {
+        this.cosignatoryDeleteList.push(cosignerItem);
+      } else {
+        this.cosignatoryAddList.push(cosignerItem);
+      }
+      this.cosignatoryList.push(cosignerItem);
       this.currentCosignatoryPublicKey = '';
     },
     removeCosignatory(index) {
       this.cosignatoryList.splice(index, 1);
     },
+    checkForm() {
+      this.errorMessage = multisigModifyValidator(this)
+      if (this.errorMessage.length > 0) {
+        this.isShowErrorMessage = true;
+        return false;
+      }
+      return true;
+    },
     showDialog() {
+      if (!this.checkForm()) {
+        return;
+      }
       this.isDialogShow = true;
       this.dialogDetails = [
         {
@@ -470,6 +506,9 @@ export default {
     txError(error) {
       // eslint-disable-next-line no-console
       console.error(error);
+    },
+    hideErrorMessage() {
+      this.isShowErrorMessage = false;
     },
   },
 };

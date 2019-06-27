@@ -101,6 +101,15 @@
           </v-list-tile>
         </v-list>
       </Confirmation>
+      <v-dialog
+              v-model="isShowErrorMessage"
+              width="500"
+      >
+        <ErrorMessage
+                :errorMessage = 'errorMessage'
+                @hideErrorMessage = 'hideErrorMessage'
+        />
+      </v-dialog>
     </v-container>
   </v-layout>
 </template>
@@ -115,14 +124,19 @@ import {
 import { mapState } from 'vuex';
 import SendConfirmation from '../signature/SendConfirmation.vue';
 import Confirmation from '../signature/Confirmation.vue';
+import ErrorMessage from '../errorMessage/ErrorMessage.vue';
+import { accountLinkValidator } from '../../infrastructure/transactions/transactionFormValidator';
 
 export default {
   components: {
     Confirmation,
     SendConfirmation,
+    ErrorMessage,
   },
   data() {
     return {
+      isShowErrorMessage: false,
+      errorMessage: [],
       maxFee: 0,
       remoteAccountKey: 'F95DE849EA383A05F128DA22FD3801D83B1327A86959BB9EC53DBBEDE3AEE488',
       linkAction: LinkAction.Link,
@@ -160,6 +174,11 @@ export default {
   },
   methods: {
     showDialog() {
+      this.errorMessage = accountLinkValidator(this);
+      if (this.errorMessage.length !== 0) {
+        this.isShowErrorMessage = true;
+        return;
+      }
       const { linkAction, remoteAccountKey } = this;
       this.transactions = [new AccountLinkTransaction(
         NetworkType.MIJIN_TEST,
@@ -193,6 +212,9 @@ export default {
         txHash: result.txHash,
         nodeURL: result.nodeURL,
       });
+    },
+    hideErrorMessage() {
+      this.isShowErrorMessage = false;
     },
   },
 };

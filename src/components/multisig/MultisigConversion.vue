@@ -188,31 +188,10 @@
             v-model="isShowErrorMessage"
             width="500"
     >
-      <v-card>
-        <v-card-title
-                class="headline grey lighten-2"
-                primary-title
-        >
-          Lack of necessary information
-        </v-card-title>
-
-        <v-card-text>
-          <div :key="index" v-for="(e,index) in errorMessage">
-            {{e}}
-          </div>
-        </v-card-text>
-        <v-divider></v-divider>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn
-                  color="primary"
-                  flat
-                  @click="isShowErrorMessage = false"
-          >
-            i see
-          </v-btn>
-        </v-card-actions>
-      </v-card>
+      <ErrorMessage
+              :errorMessage = 'errorMessage'
+              @hideErrorMessage = 'hideErrorMessage'
+      />
     </v-dialog>
   </v-layout>
 </template>
@@ -233,15 +212,17 @@ import {
   UInt64,
 } from 'nem2-sdk';
 import { mapState } from 'vuex';
-import ErrorMessage from '../../infrastructure/transactions/errorMessage';
+import ErrorMessage from '../errorMessage/ErrorMessage.vue';
 import Confirmation from '../signature/Confirmation.vue';
 import SendConfirmation from '../signature/SendConfirmation.vue';
+import { multisigCovertionValidator } from '../../infrastructure/multisig/multisigFormValidator';
 
 export default {
   name: 'AssetCreation',
   components: {
     Confirmation,
     SendConfirmation,
+    ErrorMessage,
   },
   data() {
     return {
@@ -287,38 +268,12 @@ export default {
       }
     },
     checkForm() {
-      const that = this;
-      this.errorMessage = [];
-      if (this.minApprovalDelta < 0) {
-        this.errorMessage.push(ErrorMessage.MIN_APPROVAL_ERROR);
+      this.errorMessage = multisigCovertionValidator(this);
+      if (this.errorMessage.length > 0) {
+        this.isShowErrorMessage = true;
         return false;
       }
-      if (this.minRemovalDelta < 0) {
-        this.errorMessage.push(ErrorMessage.MIN_REMOVAL_ERROR);
-        return false;
-      }
-      if (this.txMaxFee < 0) {
-        this.errorMessage.push(ErrorMessage.MAX_FEE_ERROR);
-        return false;
-      }
-      if (!this.generationHash || this.generationHash.trim() === '') {
-        this.errorMessage.push(ErrorMessage.GENERATION_HASH_NULL);
-        return false;
-      } else if (this.generationHash.length !== 64) {
-        this.errorMessage.push(ErrorMessage.GENERATION_HASH_ERROR);
-        return false;
-      }
-      if (this.publicKeyList.length === 0) {
-        this.errorMessage.push(ErrorMessage.NO_COSIGNER);
-        return false;
-      }
-      return this.publicKeyList.every((item) => {
-        if (item.trim().length !== 64) {
-          that.errorMessage.push(ErrorMessage.PUBLIC_KEY_ERROR);
-          return false;
-        }
-        return true;
-      });
+      return true;
     },
     showDialog() {
       if (!this.checkForm()) {
@@ -379,6 +334,9 @@ export default {
     },
     removeCosignatory(index) {
       this.publicKeyList.splice(index, 1);
+    },
+    hideErrorMessage() {
+      this.isShowErrorMessage = false;
     },
     txSent(result) {
       this.isDialogShow = false;

@@ -61,7 +61,7 @@
                   :href="application.activeNode"
                   target="_new"
                 >{{ application.activeNode }}</a>
-                (Cow)
+                (Dragon)
               </p>
               <v-flex xs12>
                 <v-form lazy-validation>
@@ -216,7 +216,7 @@
                   :disabled="txRecipient === '' || userPrivateKey === ''
                     || generationHash === ''"
                   color="primary mx-0"
-                  @click="dialog = true"
+                  @click="checkForm"
                 >
                   Send
                 </v-btn>
@@ -307,36 +307,10 @@
                 v-model="isShowErrorMessage"
                 width="500"
               >
-                <v-card>
-                  <v-card-title
-                    class="headline grey lighten-2"
-                    primary-title
-                  >
-                    Lack of necessary information
-                  </v-card-title>
-
-                  <v-card-text>
-                    <div
-                      v-for="(e,index) in errorMessage"
-                      :key="index"
-                    >
-                      {{ e }}
-                    </div>
-                  </v-card-text>
-                  <v-divider />
-                  <v-card-actions>
-                    <v-spacer />
-                    <v-btn
-                      color="primary"
-                      flat
-                      @click="
-                        isShowErrorMessage = false;
-                        dialog = false"
-                    >
-                      i see
-                    </v-btn>
-                  </v-card-actions>
-                </v-card>
+                <ErrorMessage
+                        :errorMessage = 'errorMessage'
+                        @hideErrorMessage = 'hideErrorMessage'
+                />
               </v-dialog>
             </v-card-text>
           </v-card>
@@ -359,18 +333,19 @@ import {
   TransactionHttp,
   MosaicId,
   Mosaic,
-  TransactionType,
 } from 'nem2-sdk';
 import { mapState } from 'vuex';
-import ErrorMessage from '../../infrastructure/transactions/errorMessage';
+import ErrorMessage from '../errorMessage/ErrorMessage.vue';
 import store from '../../store/index';
-import SendConfirmation from './SendConfirmation.vue';
+import SendConfirmation from '../signature/SendConfirmation.vue';
 import PasswordInput from '../wallet/PasswordInput.vue';
+import { transferValidator } from '../../infrastructure/transactions/transactionFormValidator';
 
 export default {
   components: {
     SendConfirmation,
     PasswordInput,
+    ErrorMessage,
   },
   store,
   // eslint-disable-next-line vue/require-prop-types
@@ -380,7 +355,7 @@ export default {
       txMessage: '',
       txAmount: 0,
       txMaxFee: 0,
-      txRecipient: '',
+      txRecipient: 'SBIWHD-WZMPIX-XM2BIN-CRXAK3-H3MGA5-VHB3D2-PO5W',
       userPrivateKey: '',
       signedTx: null,
       transferTx: null,
@@ -415,51 +390,6 @@ export default {
     },
   },
   methods: {
-    checkTransfer() {
-      if (!this.userPrivateKey || this.userPrivateKey.trim() === '') {
-        this.errorMessage.push(ErrorMessage.PRIVATE_KEY_NULL);
-        return false;
-      } if (this.userPrivateKey.length < 64) {
-        this.errorMessage.push(ErrorMessage.PRIVATE_KEY_ERROR);
-        return false;
-      }
-
-      if (!this.generationHash || this.generationHash.trim() === '') {
-        this.errorMessage.push(ErrorMessage.GENERATION_HASH_NULL);
-        return false;
-      } if (this.generationHash.length !== 64) {
-        this.errorMessage.push(ErrorMessage.GENERATION_HASH_ERROR);
-        return false;
-      }
-
-      if (!this.txRecipient || this.txRecipient.trim() === '') {
-        this.errorMessage.push(ErrorMessage.ADDRESS_NULL);
-        return false;
-      } if (this.txRecipient.length < 40) {
-        this.errorMessage.push(ErrorMessage.ADDRESS_ERROR);
-        return false;
-      }
-      if (this.txAmount < 0) {
-        this.errorMessage.push(ErrorMessage.TX_AMOUNT_ERROR);
-        return false;
-      }
-      if (this.txMaxFee < 0) {
-        this.errorMessage.push(ErrorMessage.MAX_FEE_ERROR);
-        return false;
-      }
-      return true;
-    },
-    checkForm() {
-      this.errorMessage = [];
-      let flag = false;
-      switch (this.transactionType) {
-      case TransactionType.TRANSFER:
-        flag = this.checkTransfer();
-        break;
-      default: flag = false;
-      }
-      return flag;
-    },
     createTransferTransaction() {
       const recipientAddr = Address.createFromRawAddress(this.txRecipient);
       const nativeCurrency = NetworkCurrencyMosaic.createRelative(
@@ -479,12 +409,15 @@ export default {
         UInt64.fromUint(this.txMaxFee),
       );
     },
-
-    transmitTransaction() {
-      if (!this.checkForm()) {
+    checkForm() {
+      this.errorMessage = transferValidator(this);
+      if (this.errorMessage.length !== 0) {
         this.isShowErrorMessage = true;
         return;
       }
+      this.dialog = true;
+    },
+    transmitTransaction() {
       this.createTransferTransaction();
       const signerAccount = Account.createFromPrivateKey(
         this.userPrivateKey,
@@ -534,6 +467,9 @@ export default {
         this.showPasswordInput = false;
         this.userPrivateKey = this.wallet.activeWallet.account.privateKey;
       }
+    },
+    hideErrorMessage() {
+      this.isShowErrorMessage = false;
     },
   },
 };

@@ -60,7 +60,7 @@
                   :href="application.activeNode"
                   target="_new"
                 >{{ application.activeNode }}</a>
-                (Cow)
+                (Dragon)
               </p>
               <v-flex xs12>
                 <v-form lazy-validation>
@@ -310,7 +310,7 @@ export default {
       txMessage: '',
       txAmount: 0,
       txMaxFee: 0,
-      txRecipient: 'SAXJSNGSDPXHRK2N4PRB646HGZJT6GSJ4SJI3OEZ',
+      txRecipient: 'SBIWHD-WZMPIX-XM2BIN-CRXAK3-H3MGA5-VHB3D2-PO5W',
       userPrivateKey: '',
       signedTx: null,
       transferTx: null,
