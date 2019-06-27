@@ -58,7 +58,7 @@
 <script>
 
 import { mapState } from 'vuex';
-import { Address } from 'nem2-sdk';
+import { Address, NetworkCurrencyMosaic } from 'nem2-sdk';
 import { TransactionURI } from 'nem2-uri-scheme';
 import { txTypeNameFromTypeId } from '../../infrastructure/transactions/transactions-types';
 import CreateTransferInvoice from './CreateTransferInvoice.vue';
@@ -80,6 +80,7 @@ export default {
       const transaction = transactionURI.toTransaction();
       const { generationHash } = transactionURI;
 
+      const mosaics = this.mosaics || [NetworkCurrencyMosaic.createRelative(0)];
       const formattedMosaics = this.mosaics.map((mosaic) => {
         if (mosaic.id.fullName) {
           return {
