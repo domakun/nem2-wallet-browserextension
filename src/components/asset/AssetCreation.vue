@@ -81,17 +81,18 @@
         <v-btn
           :disabled="disabledSendTransaction"
           color="primary mx-0"
-          @click="showDialog"
+          @click="createAsset"
         >
           Send Transaction
         </v-btn>
       </v-card-actions>
     </v-card>
     <Confirmation
-      :is-show="isDialogShow"
+      v-model="isDialogShow"
       :transactions="transactions"
-      @transmitTransaction="createAsset"
-      @close="dialogClosed"
+      :generation-hash="application.generationHashes[application.activeNode]"
+      @sent="txSent"
+      @error="txError"
     >
       <v-list>
         <v-list-tile
@@ -124,7 +125,6 @@ import {
   MosaicSupplyType,
   MosaicNonce,
   NetworkType,
-  TransactionHttp,
   UInt64,
 } from 'nem2-sdk';
 import Confirmation from '../signature/Confirmation.vue';
@@ -250,8 +250,6 @@ export default {
     },
     createAsset() {
       if (!this.wallet.activeWallet) return;
-      const endpoint = this.application.activeNode;
-      const transactionHttp = new TransactionHttp(endpoint);
       // eslint-disable-next-line prefer-destructuring;
       const { account } = this.wallet.activeWallet;
       const nonce = MosaicNonce.createRandom();
@@ -290,16 +288,20 @@ export default {
         [],
       );
       this.transactions = [aggregateTransaction];
+      this.showDialog();
     },
-    dialogClosed() {
-      this.isDialogShow = false;
-      this.dialogDetails = [];
+    txSent(result) {
+      this.txSendResults.push({
+        txHash: result.txHash,
+        nodeURL: result.nodeURL,
+      });
+    },
+    txError(error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
     },
   },
 
 };
 
 </script>
-
-<style scoped>
-</style>
