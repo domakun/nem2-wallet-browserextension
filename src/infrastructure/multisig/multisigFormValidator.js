@@ -12,6 +12,7 @@ export const multisigModifyValidator = (pointer) => {
   const removalResult = removalDelta + currentMultisigAccount.minRemoval;
   const approvalResult = approvalDelta + currentMultisigAccount.minApproval;
   const cosignerResult = addAmount + cosignerAmount - deleteAmount;
+  /* eslint-disable */
   let errorMessage = [];
   if (!currentMultisigAccount) {
     errorMessage.push(ErrorMessage.PUBLIC_KEY_NULL);

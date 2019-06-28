@@ -60,6 +60,7 @@ export const transferValidator = (pointer) => {
   const {
     userPrivateKey, generationHash, txRecipient, txAmount, txMaxFee,
   } = pointer;
+  /* eslint-disable */
   let errorMessage = [];
   if (!userPrivateKey || userPrivateKey.trim() === '') {
     errorMessage.push(ErrorMessage.PRIVATE_KEY_NULL);
