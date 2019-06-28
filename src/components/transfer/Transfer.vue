@@ -216,7 +216,7 @@
                   :disabled="txRecipient === '' || userPrivateKey === ''
                     || generationHash === ''"
                   color="primary mx-0"
-                  @click="checkForm"
+                  @click="createTransferTransaction"
                 >
                   Send
                 </v-btn>
@@ -226,82 +226,35 @@
                   :tx-hash="txHash"
                   :tx-recipient="txRecipient"
                   :node-u-r-l="application.activeNode"
+                  :tx-send-data="txSendResults"
+                  :generation-hash="generationHash"
                 />
               </div>
 
-              <v-dialog
-                v-model="dialog"
-                max-width="500"
+
+              <Confirmation
+                      v-model="isDialogShow"
+                      :transactions="transactions"
+                      :generation-hash="generationHash"
+                      @sent="txSent"
+                      @error="txError"
               >
-                <v-card>
-                  <v-card-title class="headline">
-                    Send this transaction?
-                  </v-card-title>
-                  <v-card-text>
-                    Are you sure you that you want to send a transaction with the following details?
-                    <v-list>
-                      <v-list-tile>
-                        <v-list-tile-action>
-                          <v-icon>person_outline</v-icon>
-                        </v-list-tile-action>
-                        <v-list-tile-content>
-                          <v-list-tile-title>Recipient: {{ txRecipient }}</v-list-tile-title>
-                        </v-list-tile-content>
-                      </v-list-tile>
-
-                      <v-list-tile>
-                        <v-list-tile-action>
-                          <v-icon>monetization_on</v-icon>
-                        </v-list-tile-action>
-                        <v-list-tile-content>
-                          <v-list-tile-title>Amount: {{ txAmount }} XEM</v-list-tile-title>
-                        </v-list-tile-content>
-                      </v-list-tile>
-
-                      <v-list-tile>
-                        <v-list-tile-action>
-                          <v-icon>message</v-icon>
-                        </v-list-tile-action>
-                        <v-list-tile-content>
-                          <v-list-tile-title>Message: {{ txMessage }}</v-list-tile-title>
-                        </v-list-tile-content>
-                      </v-list-tile>
-                    </v-list>
-                    <template v-for="(mosaic) in mosaics">
-                      <v-list :key="mosaic.id.toHex()">
-                        <v-list-tile v-if="!(mosaic.id.toHex() == '85bbea6cc462b244')">
-                          <v-list-tile-action>
-                            <v-icon>group_work</v-icon>
-                          </v-list-tile-action>
-                          <v-list-tile-content>
-                            <v-list-tile-title>
-                              Asset Attached: {{ mosaic.id.toHex() }}
-                            </v-list-tile-title>
-                          </v-list-tile-content>
-                        </v-list-tile>
-                      </v-list>
-                    </template>
-                  </v-card-text>
-
-                  <v-card-actions>
-                    <v-spacer />
-
-                    <v-btn
-                      color="info"
-                      @click="dialog = false"
-                    >
-                      Cancel
-                    </v-btn>
-
-                    <v-btn
-                      color="info"
-                      @click="transmitTransaction"
-                    >
-                      Yes, send it!
-                    </v-btn>
-                  </v-card-actions>
-                </v-card>
-              </v-dialog>
+                <v-list>
+                  <v-list-tile
+                          v-for="detail in dialogDetails"
+                          :key="detail.key"
+                  >
+                    <v-list-tile-action>
+                      <v-icon>{{ detail.icon }}</v-icon>
+                    </v-list-tile-action>
+                    <v-list-tile-content>
+                      <v-list-tile-title>
+                        {{ detail.key }}: {{ detail.value }}
+                      </v-list-tile-title>
+                    </v-list-tile-content>
+                  </v-list-tile>
+                </v-list>
+              </Confirmation>
 
               <v-dialog
                 v-model="isShowErrorMessage"
@@ -323,7 +276,6 @@
 <script>
 import {
   NetworkType,
-  Account,
   TransferTransaction,
   Deadline,
   Address,
@@ -335,31 +287,35 @@ import {
   Mosaic,
 } from 'nem2-sdk';
 import { mapState } from 'vuex';
+import { transferValidator } from '../../infrastructure/transactions/transactionFormValidator';
 import ErrorMessage from '../errorMessage/ErrorMessage.vue';
 import store from '../../store/index';
 import SendConfirmation from '../signature/SendConfirmation.vue';
+import Confirmation from '../signature/Confirmation.vue';
 import PasswordInput from '../wallet/PasswordInput.vue';
-import { transferValidator } from '../../infrastructure/transactions/transactionFormValidator';
 
 export default {
   components: {
     SendConfirmation,
     PasswordInput,
     ErrorMessage,
+    Confirmation,
   },
   store,
   // eslint-disable-next-line vue/require-prop-types
   props: ['transactionType'],
   data() {
     return {
+      transactions: [],
+      txSendResults: [],
       txMessage: '',
       txAmount: 0,
       txMaxFee: 0,
       txRecipient: 'SBIWHD-WZMPIX-XM2BIN-CRXAK3-H3MGA5-VHB3D2-PO5W',
       userPrivateKey: '',
       signedTx: null,
-      transferTx: null,
-      dialog: false,
+      isDialogShow: false,
+      dialogDetails: [],
       checkbox: false,
       mosaics: [],
       currentMosaicName: '',
@@ -391,6 +347,36 @@ export default {
   },
   methods: {
     createTransferTransaction() {
+      this.errorMessage = transferValidator(this);
+      if (this.errorMessage.length !== 0) {
+        this.isShowErrorMessage = true;
+        return;
+      }
+      const { mosaics } = this;
+      const mosaicHexList = mosaics.map(item => item.id.toHex());
+      this.dialogDetails = [
+        {
+          icon: 'add',
+          key: 'Recipient',
+          value: this.txRecipient,
+        },
+        {
+          icon: 'add',
+          key: 'Amount',
+          value: this.txAmount,
+        },
+        {
+          icon: 'add',
+          key: 'Message ',
+          value: this.txMessage,
+        },
+        {
+          icon: 'add',
+          key: ' Asset Attached',
+          value: mosaicHexList.join(' , '),
+        },
+      ];
+      this.isDialogShow = true;
       const recipientAddr = Address.createFromRawAddress(this.txRecipient);
       const nativeCurrency = NetworkCurrencyMosaic.createRelative(
         UInt64.fromUint(this.txAmount),
@@ -400,7 +386,7 @@ export default {
         this.mosaics.unshift(nativeCurrency);
       }
 
-      this.transferTx = TransferTransaction.create(
+      const transferTransaction = TransferTransaction.create(
         Deadline.create(),
         recipientAddr,
         this.mosaics,
@@ -408,43 +394,7 @@ export default {
         NetworkType.MIJIN_TEST,
         UInt64.fromUint(this.txMaxFee),
       );
-    },
-    checkForm() {
-      this.errorMessage = transferValidator(this);
-      if (this.errorMessage.length !== 0) {
-        this.isShowErrorMessage = true;
-        return;
-      }
-      this.dialog = true;
-    },
-    transmitTransaction() {
-      this.createTransferTransaction();
-      const signerAccount = Account.createFromPrivateKey(
-        this.userPrivateKey,
-        NetworkType.MIJIN_TEST,
-      );
-
-      if (this.transferTx) {
-        this.signedTx = signerAccount
-          .sign(this.transferTx, this.generationHash);
-        this.dialog = false;
-        if (this.signedTx) {
-          this.transactionHttp.announce(this.signedTx)
-            .subscribe(
-              (txAnnouncmentResponse) => {
-                if (
-                  txAnnouncmentResponse.message
-                === 'packet 9 was pushed to the network via /transaction'
-                ) {
-                  this.txHash = this.signedTx.hash;
-                  this.mosaics = [];
-                }
-              },
-              // eslint-disable-next-line no-console
-              err => console.log(err),
-            );
-        }
-      }
+      this.transactions = [transferTransaction];
     },
 
     addMosaic() {
@@ -470,6 +420,16 @@ export default {
     },
     hideErrorMessage() {
       this.isShowErrorMessage = false;
+    },
+    txSent(result) {
+      this.txSendResults.push({
+        txHash: result.txHash,
+        nodeURL: result.nodeURL,
+      });
+    },
+    txError(error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
     },
   },
 };
