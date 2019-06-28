@@ -317,6 +317,13 @@ export default {
         this.isShowErrorMessage = true;
         return;
       }
+      if (this.filterType === FilterType.ADDRESS_FILTER) {
+        this.generateAddressTransaction();
+      } else if (this.filterType === FilterType.MOSAIC_FILTER) {
+        this.generateMosaicTransaction();
+      } else if (this.filterType === FilterType.ENTITY_FILTER) {
+        this.generateEntityTypeTransaction();
+      }
       this.dialogDetails = [
         {
           icon: 'add',
